@@ -1169,8 +1169,8 @@ const DEFAULT_SETTINGS = {
   allowModify: 'no',
   chainMode: false,
   githubToken: '',
-  githubRepo: '',
-  githubOwner: ''
+  githubRepo: 'field-collector',
+  githubOwner: 'zydtxz'
 };
 
 // 当前运行时设置
@@ -4142,8 +4142,8 @@ async function publishToGithub() {
     await ghPutFile(token, owner, repo, 'schema.json', schemaPayload,
       '发布表单: ' + (currentSettings.formName || '现场调研'), existingSha);
 
-    // Generate share link
-    const baseUrl = window.location.href.split('?')[0].split('#')[0];
+    // Generate share link - 使用 GitHub Pages URL 作为基础地址
+    const baseUrl = 'https://' + owner + '.github.io/' + repo + '/';
     const shareParams = new URLSearchParams({
       mode: 'fill',
       token: token,
