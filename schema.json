@@ -1,0 +1,385 @@
+{
+  "formName": "现场调研采集",
+  "description": "",
+  "accessType": "anyone",
+  "fields": [
+    {
+      "id": "field_1783341273484_yd7rf",
+      "label": "街道/乡镇",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_tp094",
+      "label": "社区/行政村",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_ny6k8",
+      "label": "小区名称",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_xkbzx",
+      "label": "网格信息",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_f41rd",
+      "label": "网格员联系电话",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_z8b5s",
+      "label": "3.1住房是否存在结构安全隐患的？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_v2u44",
+      "label": "3.1存在结构安全隐患的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_qk4o8",
+      "label": "3.1去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_1nret",
+      "label": "3.1.1混凝土结构构件裂缝,如承重墙体、楼板、结构梁开裂,裂缝肉眼清晰可见,裂缝周边混凝土开裂明显,墙体、楼板裂缝呈贯通状;梁裂缝集中于底部,出现多条裂缝(混凝土裂缝肉眼清晰可见,多为贯通状,裂缝深度可达到最近钢筋处)(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_6hikc",
+      "label": "3.1.2违规拆除结构承重构件,如户内承重墙体拆墙打洞,底商或者地库框架柱拆除,砖混结构拆除阳台承重墙垛等(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_gb6vl",
+      "label": "3.1.3砖混结构主体出现砖体缺棱掉角(存在多处)、表面存在裂缝(肉眼清晰可见,且为通长裂缝),砂浆饱满度差,呈粉末状,砖与砂浆之间存在较大缝隙(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_7s7et",
+      "label": "3.1.4违规拆除外窗窗下墙体加建阳台,违规加建悬挑飘窗(凸出墙面40cm以上)(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_uaazd",
+      "label": "3.2住宅是否存在燃气安全隐患？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_p2dz1",
+      "label": "3.2存在燃气安全隐患问题的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_3ps98",
+      "label": "3.2.1存在燃气安全隐患问题的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_c0msb",
+      "label": "3.3住宅是否存在楼道安全隐患问题？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_mdbnn",
+      "label": "3.3存在楼道安全隐患问题的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_uvbml",
+      "label": "3.3去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_g7hc1",
+      "label": "3.3.1楼梯间内楼梯踏步缺损(超过10cm)、楼梯扶手松动损坏、照明损坏缺失、安全护栏松动损坏或缺失(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_xzbp7",
+      "label": "3.3.2通风井道、排风烟道等堵塞,造成通风不畅、异味串味(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_k65vz",
+      "label": "3.3.3高层住宅消防门缺失、损坏、无法关闭(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_894vw",
+      "label": "3.3.4高层住宅消火栓缺失或无水、无日常维护、老化损坏(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_hadi1",
+      "label": "3.3.5灭火器缺失(一般在公共区域布置)、未设置灭火器保护设施(灭火器箱或挂装)(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_dr9oe",
+      "label": "3.3.6高层住宅消防安全出口指示灯损坏或者缺失(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_cotm7",
+      "label": "3.3.7住户占用消防楼梯、楼道、管道井等公共空间,用于堆放杂物(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_7sour",
+      "label": "3.3.8公共楼道停放自行车、电动自行车以及违规充电(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_4xacf",
+      "label": "3.4住宅是否存在围护安全隐患问题？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_9d5zi",
+      "label": "3.4存在围护安全隐患问题的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_p06hh",
+      "label": "3.4去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_qrm59",
+      "label": "3.4.1 外墙或屋面装饰材料（涂料、陶瓷砖、石材、瓦等）和保温材料开裂、损坏、脱落；可进一步细化评价为：无隐患、有隐患（损坏或脱落面积10 平方米以下）、隐患较大（损坏或脱落面积10 至30 平方米）、隐患严重（损坏或脱落面积30 平方米以上）(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_99t0h",
+      "label": "3.4.2公共区域(走廊、楼梯间等)门窗玻璃存在破损、脱落等情况(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_3f3nj",
+      "label": "3.4.3屋面排水不畅、漏水(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_idry3",
+      "label": "3.4.4外墙内侧、地下室渗水、漏水(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_ex9il",
+      "label": "3.5住宅是否存在管线管道破损问题？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_v3lkc",
+      "label": "3.5存在管线管道破损问题的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_pv3y9",
+      "label": "3.5去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_viyzp",
+      "label": "3.5.1给水管线跑冒滴漏的情况(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_rx7wl",
+      "label": "3.5.2排水管线老化破损、渗漏堵塞的情况（栋）",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_aj4pd",
+      "label": "3.5.3存在供暖管线漏水或管线两年内持续多处维修的情况（非冬季供暖地区不调查此项）（栋）",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_739ma",
+      "label": "3.5.4电力管线老化破损及裸露、私搭乱接(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_t36wd",
+      "label": "3.5.5 电信管线老化破损及裸露、私搭乱接（栋）",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_f7j4r",
+      "label": "3.6住宅是否需要进行适老化改造？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_5yjrt",
+      "label": "3.6需要进行适老化改造的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_wdo95",
+      "label": "3.6去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_k87g2",
+      "label": "3.6.1 多层住宅（4-6 层）中建成时未安装电梯，具备加装电梯条件但尚未进行加装改造。是否具备加装条件根据各县相关要求进行判断确定（住宅楼梯间一侧至少预留4米场地用于电梯加装，且加装后应不影响小区内车辆通行及消防路布置，不减少小区总体绿地面积（栋）",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_wlndl",
+      "label": "3.6.2住宅单元出入口和通道未进行无障碍改造、地面防滑处理(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_wxjpi",
+      "label": "3.7是住宅否需要进行节能改造？",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_nh9ho",
+      "label": "3.7需要进行节能改造的住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_lcgg7",
+      "label": "3.7去重后楼号汇总",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_mueib",
+      "label": "3.7.1需要进行节能改造的具体住宅数量(栋)",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_e6xk0",
+      "label": "微信OpenID",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_o7f5l",
+      "label": "提交人",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_c6ho7",
+      "label": "提交时间",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    },
+    {
+      "id": "field_1783341273484_qyq48",
+      "label": "更新时间",
+      "type": "text",
+      "required": false,
+      "placeholder": ""
+    }
+  ]
+}
