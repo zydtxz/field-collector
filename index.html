@@ -916,13 +916,13 @@
       </div>
       <!-- 发布与同步 Tab -->
       <div class="settings-tab-content" id="tabCloud">
-        <div class="settings-section-title">GitHub 云端配置</div>
+        <div class="settings-section-title">云端同步配置（GitHub）</div>
         <div class="settings-item">
-          <span class="settings-item-label">GitHub Token</span>
+          <span class="settings-item-label">GitHub 私人令牌</span>
           <div class="settings-item-control">
             <input class="settings-input" id="settingGithubToken" type="password" placeholder="ghp_xxxxxxxx">
             <div style="font-size:12px;color:#999;margin-top:4px">
-              <a href="https://github.com/settings/tokens/new?scopes=repo&description=field-collector" target="_blank" style="color:var(--primary)">点我生成Token</a>（需勾选repo权限）
+              <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--primary)">点我生成令牌</a>（勾选 repo 权限）
             </div>
           </div>
         </div>
@@ -4051,8 +4051,8 @@ async function ghApi(token, method, url, body) {
     method,
     headers: {
       'Authorization': 'token ' + token,
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
     }
   };
   if (body) opts.body = JSON.stringify(body);
@@ -4067,16 +4067,29 @@ async function ghApi(token, method, url, body) {
 async function ghGetFile(token, owner, repo, path) {
   const data = await ghApi(token, 'GET',
     'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path);
-  const content = atob(data.content.replace(/\n/g, ''));
-  return JSON.parse(decodeURIComponent(escape(content)));
+  const decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ''))));
+  return JSON.parse(decoded);
 }
 
 async function ghPutFile(token, owner, repo, path, content, message, sha) {
   const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2))));
-  const body = { message, content };
+  const body = { message, content: encoded, branch: 'main' };
   if (sha) body.sha = sha;
-  return ghApi(token, 'PUT',
-    'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path, body);
+  const url = 'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': 'token ' + token,
+      'Content-Type': 'application/json',
+      'Accept': 'application/vnd.github.v3+json'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error('GitHub API ' + res.status + ': ' + errText);
+  }
+  return res.json();
 }
 
 async function ghGetOwner(token) {
@@ -4092,22 +4105,19 @@ async function ghEnsureRepo(token, repoName) {
   } catch (e) {
     // Repo doesn't exist, create it
     const created = await ghApi(token, 'POST', 'https://api.github.com/user/repos', {
-      name: repoName, private: true,
-      description: '表单调研数据仓库 - ' + (currentSettings.formName || '现场调研')
+      name: repoName, private: false,
+      description: '表单调研数据仓库 - ' + (currentSettings.formName || '现场调研'),
+      auto_init: false, has_issues: false
     });
-    // Init with README
-    await ghPutFile(token, owner, repoName, 'README.md',
-      '# ' + (currentSettings.formName || '现场调研') + '\n\n自动创建的表单数据仓库',
-      'Initial commit');
     return { owner, repo: repoName };
   }
 }
 
-// ==================== 发布表单到GitHub ====================
+// ==================== 发布表单到Gitee ====================
 async function publishToGithub() {
   const token = document.getElementById('settingGithubToken').value.trim();
   let repoName = document.getElementById('settingGithubRepo').value.trim();
-  if (!token) { showToast('请先填写GitHub Token', true); return; }
+  if (!token) { showToast('请先填写 GitHub 私人令牌', true); return; }
   if (!formSchema.fields || formSchema.fields.length === 0) {
     showToast('请先设计表单字段', true); return;
   }
@@ -4346,9 +4356,19 @@ async function submitToGithub() {
 
     async function uploadPhotoToGithub(blob, name, path) {
       const base64 = await blobToBase64(blob);
-      await ghApi(token, 'PUT',
-        'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path,
-        { message: '照片 ' + path, content: base64 });
+      const res = await fetch('https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'token ' + token,
+          'Content-Type': 'application/json',
+          'Accept': 'application/vnd.github.v3+json'
+        },
+        body: JSON.stringify({ message: '照片 ' + path, content: base64, branch: 'main' })
+      });
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('GitHub API ' + res.status + ': ' + errText);
+      }
     }
 
     // Top-level photos
