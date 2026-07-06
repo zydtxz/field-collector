@@ -1,0 +1,4428 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>现场调研采集</title>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip/dist/jszip.min.js"></script>
+<style>
+  :root {
+    --primary: #1890ff;
+    --primary-dark: #096dd9;
+    --primary-light: #e6f7ff;
+    --success: #52c41a;
+    --warning: #fa8c16;
+    --danger: #ff4d4f;
+    --text: #333;
+    --text-secondary: #666;
+    --border: #d9d9d9;
+    --bg: #f5f5f5;
+    --card-bg: #fff;
+    --radius: 12px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 16px; line-height: 1.6;
+    -webkit-tap-highlight-color: transparent;
+    padding-top: 56px; padding-bottom: 80px;
+  }
+  .header {
+    position: fixed; top: 0; left: 0; right: 0; height: 56px;
+    background: var(--primary); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 600; z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+  .header .btn-view-data {
+    position: absolute; right: 12px; font-size: 13px;
+    background: rgba(255,255,255,0.2); color: #fff;
+    border: 1px solid rgba(255,255,255,0.4); border-radius: 16px;
+    padding: 4px 12px; cursor: pointer;
+  }
+  .header .btn-view-data:active { background: rgba(255,255,255,0.35); }
+  .container { max-width: 600px; margin: 0 auto; padding: 12px; }
+  @media (max-width: 480px) {
+    .container { padding: 8px; }
+    .card { padding: 12px; margin-bottom: 8px; }
+    .form-input, .form-select { height: 40px; font-size: 15px; }
+    .form-textarea { min-height: 60px; font-size: 15px; }
+    .btn-location { min-width: 80px; font-size: 13px; height: 40px; }
+    .photo-upload-zone { padding: 15px; }
+    .photo-grid { grid-template-columns: repeat(3, 1fr); }
+    .bottom-bar { padding: 8px 12px; }
+    .bottom-bar .btn-save { height: 44px; font-size: 16px; }
+    .header { font-size: 16px; }
+    .header .btn-view-data { font-size: 12px; padding: 3px 10px; }
+    .subform-header { padding: 8px 12px; }
+    .subform-body { padding: 12px; }
+  }
+  .card {
+    background: var(--card-bg); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card-title {
+    font-size: 16px; font-weight: 600; color: var(--primary);
+    margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+  }
+  .card-title .icon { font-size: 18px; }
+  .form-group { margin-bottom: 14px; }
+  .form-group:last-child { margin-bottom: 0; }
+  .form-label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+  .form-label .required { color: var(--danger); }
+  .form-input, .form-select {
+    width: 100%; height: 44px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 12px; font-size: 16px;
+    color: var(--text); background: #fff; -webkit-appearance: none;
+    appearance: none; outline: none; transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+  }
+  .form-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+  }
+  .form-textarea {
+    width: 100%; min-height: 80px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-size: 16px;
+    color: var(--text); background: #fff; outline: none; resize: vertical;
+    transition: border-color 0.2s; font-family: inherit;
+  }
+  .form-textarea:focus {
+    border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,0.2);
+  }
+  .location-row { display: flex; gap: 8px; align-items: center; }
+  .location-row .form-input { flex: 1; background: var(--primary-light); font-size: 14px; }
+  .btn-location {
+    height: 44px; min-width: 100px; background: var(--primary); color: #fff;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    gap: 4px; white-space: nowrap; transition: background 0.2s;
+  }
+  .btn-location:active { background: var(--primary-dark); }
+  .btn-location.loading { opacity: 0.7; pointer-events: none; }
+  .location-success {
+    margin-top: 4px; font-size: 13px; color: var(--success);
+    display: none; align-items: center; gap: 4px;
+  }
+  .location-success.show { display: flex; }
+  .location-success a { color: var(--primary); text-decoration: none; }
+  .photo-upload-zone {
+    border: 2px dashed var(--border); border-radius: 8px; padding: 20px;
+    text-align: center; cursor: pointer; color: var(--text-secondary);
+    transition: border-color 0.2s; position: relative;
+  }
+  .photo-upload-zone:active, .photo-upload-zone.dragover {
+    border-color: var(--primary); color: var(--primary);
+  }
+  .photo-upload-zone .camera-icon { font-size: 32px; display: block; margin-bottom: 4px; }
+  .photo-upload-zone .upload-text { font-size: 14px; }
+  .photo-upload-zone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  }
+  .photo-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px; margin-top: 10px;
+  }
+  .photo-item {
+    position: relative; aspect-ratio: 1; border-radius: 6px;
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  .photo-item img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-item .btn-delete-photo {
+    position: absolute; top: 2px; right: 2px; width: 22px; height: 22px;
+    background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%;
+    font-size: 14px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .photo-item .watermark-badge {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(24,144,255,0.85); color: #fff;
+    font-size: 9px; text-align: center; padding: 1px 0;
+  }
+
+  /* 动态子表单 */
+  .subform-card {
+    background: var(--card-bg); border-radius: var(--radius);
+    margin-bottom: 12px; border: 1px solid var(--border); overflow: hidden;
+  }
+  .subform-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--primary-light);
+    cursor: default; -webkit-user-select: none; user-select: none;
+  }
+  .subform-header .subform-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+  .subform-header .subform-actions { display: flex; gap: 8px; align-items: center; }
+  .subform-header .btn-remove-subform {
+    width: 28px; height: 28px; background: var(--danger); color: #fff;
+    border: none; border-radius: 50%; font-size: 16px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .subform-body { padding: 16px; }
+  .btn-add-subform {
+    width: 100%; height: 48px; background: var(--primary-light);
+    color: var(--primary); border: 2px dashed var(--primary);
+    border-radius: var(--radius); font-size: 16px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 6px; transition: all 0.2s;
+  }
+  .btn-add-subform:active { background: rgba(24,144,255,0.15); }
+
+  /* Radio/Checkbox 组 */
+  .option-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+  .option-item {
+    display: flex; align-items: center; gap: 4px; font-size: 15px; cursor: pointer;
+  }
+  .option-item input { width: 18px; height: 18px; cursor: pointer; }
+
+  /* 级联下拉 */
+  .cascading-group { display: flex; flex-direction: column; gap: 8px; }
+  .cascading-group .form-select { width: 100%; }
+
+  .bottom-bar {
+    position: fixed; bottom: 0; left: 0; right: 0; background: #fff;
+    padding: 10px 16px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    z-index: 1000; display: flex; align-items: center; gap: 12px;
+  }
+  .bottom-bar .record-count { font-size: 13px; color: var(--text-secondary); white-space: nowrap; }
+  .bottom-bar .btn-save {
+    flex: 1; height: 48px; background: var(--primary); color: #fff;
+    border: none; border-radius: 8px; font-size: 17px; font-weight: 600;
+    cursor: pointer; transition: background 0.2s;
+  }
+  .bottom-bar .btn-save:active { background: var(--primary-dark); }
+  .bottom-bar .btn-save:disabled { background: #bfbfbf; cursor: not-allowed; }
+  .toast {
+    position: fixed; top: 70px; left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--success); color: #fff; padding: 10px 24px;
+    border-radius: 8px; font-size: 15px; font-weight: 500;
+    z-index: 2000; opacity: 0; pointer-events: none;
+    transition: all 0.3s; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 90vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--danger); }
+  .data-panel-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 1500; display: none; animation: fadeIn 0.2s;
+  }
+  .data-panel-overlay.show { display: block; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .data-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 500px;
+    background: var(--bg); z-index: 1600; display: none; flex-direction: column;
+    animation: slideUp 0.3s; overflow: hidden;
+  }
+  .data-panel.show { display: flex; }
+  .data-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--primary); color: #fff;
+  }
+  .data-panel-header h2 { font-size: 17px; font-weight: 600; }
+  .data-panel-header .btn-close {
+    width: 32px; height: 32px; background: rgba(255,255,255,0.2);
+    color: #fff; border: none; border-radius: 50%; font-size: 18px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .data-panel-actions {
+    display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 16px;
+    background: #fff; border-bottom: 1px solid var(--border);
+  }
+  .data-panel-actions button {
+    flex: 1 1 calc(50% - 4px); min-width: 120px; height: 40px;
+    border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-export-excel { background: var(--success); color: #fff; }
+  .btn-export-photos { background: var(--warning); color: #fff; }
+  .btn-export-json { background: #722ed1; color: #fff; }
+  .btn-import-json { background: #13c2c2; color: #fff; }
+  .data-panel-actions button:active { opacity: 0.8; }
+  .data-panel-body {
+    flex: 1; overflow-y: auto; padding: 12px 16px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .record-item {
+    background: #fff; border-radius: var(--radius); margin-bottom: 10px;
+    border: 1px solid var(--border); overflow: hidden;
+  }
+  .record-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px; cursor: pointer;
+  }
+  .record-header .record-info { flex: 1; }
+  .record-header .record-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .record-header .record-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .record-header .btn-delete-record {
+    width: 32px; height: 32px; background: #fff1f0; color: var(--danger);
+    border: 1px solid #ffa39e; border-radius: 6px; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 8px;
+  }
+  .record-detail {
+    padding: 0 14px 14px; display: none; border-top: 1px solid var(--border);
+  }
+  .record-item.expanded .record-detail { display: block; }
+  .record-detail .detail-row { display: flex; padding: 6px 0; font-size: 14px; }
+  .record-detail .detail-label { color: var(--text-secondary); min-width: 70px; flex-shrink: 0; }
+  .record-detail .detail-value { flex: 1; color: var(--text); word-break: break-all; }
+  .building-detail {
+    background: var(--primary-light); border-radius: 8px;
+    padding: 10px 12px; margin-top: 8px;
+  }
+  .building-detail .bd-title { font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 4px; }
+  .building-detail .bd-row { font-size: 13px; color: var(--text-secondary); padding: 2px 0; }
+  .building-detail .bd-photos {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 6px; margin-top: 6px;
+  }
+  .building-detail .bd-photos img {
+    width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 4px;
+  }
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text-secondary); }
+  .empty-state .empty-icon { font-size: 48px; margin-bottom: 8px; }
+  .btn-next {
+    width: 100%; height: 44px; background: var(--success); color: #fff;
+    border: none; border-radius: 8px; font-size: 16px; font-weight: 500;
+    cursor: pointer; margin-top: 10px; display: none;
+  }
+  .btn-next.show { display: block; }
+  .btn-next:active { opacity: 0.8; }
+  .import-file-input { display: none; }
+
+  /* ===== 设置/表单构建面板样式 ===== */
+  .header .btn-settings {
+    position: absolute; right: 110px; font-size: 13px;
+    background: rgba(255,255,255,0.2); color: #fff;
+    border: 1px solid rgba(255,255,255,0.4); border-radius: 16px;
+    padding: 4px 12px; cursor: pointer;
+  }
+  .header .btn-settings:active { background: rgba(255,255,255,0.35); }
+  .project-desc {
+    max-width: 600px; margin: 0 auto; padding: 0 12px;
+    font-size: 13px; color: var(--text-secondary); text-align: center;
+    display: none;
+  }
+  .project-desc.show { display: block; }
+
+  /* 设置模态框 */
+  .settings-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 2000; display: none; animation: fadeIn 0.2s;
+    justify-content: center; align-items: center;
+  }
+  .settings-overlay.show { display: flex; }
+  .settings-card {
+    background: #fff; border-radius: 16px; width: 94%; max-width: 520px;
+    max-height: 90vh; display: flex; flex-direction: column;
+    animation: scaleIn 0.25s ease;
+  }
+  @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  .settings-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .settings-header h3 { font-size: 17px; font-weight: 600; color: var(--text); }
+  .settings-header .btn-close-settings {
+    width: 28px; height: 28px; background: #f5f5f5; color: #999;
+    border: none; border-radius: 50%; font-size: 16px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .settings-body {
+    flex: 1; overflow-y: auto; padding: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .settings-section-title {
+    font-size: 13px; color: #999; padding: 16px 20px 8px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .settings-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid #f5f5f5;
+    min-height: 52px;
+  }
+  .settings-item:last-child { border-bottom: none; }
+  .settings-item-label { font-size: 15px; color: var(--text); flex-shrink: 0; }
+  .settings-item-label small { display: block; font-size: 12px; color: #999; margin-top: 2px; }
+  .settings-item-control { display: flex; align-items: center; gap: 8px; }
+  .settings-input {
+    width: 180px; height: 36px; border: 1px solid var(--border);
+    border-radius: 6px; padding: 0 10px; font-size: 14px; color: var(--text);
+    text-align: right; outline: none; background: #fff;
+  }
+  .settings-input:focus { border-color: var(--primary); }
+  .settings-select {
+    height: 36px; border: 1px solid var(--border); border-radius: 6px;
+    padding: 0 10px; font-size: 14px; color: var(--text);
+    background: #fff; outline: none; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%23999' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 8px center; padding-right: 24px;
+  }
+  .settings-datetime {
+    width: 180px; height: 36px; border: 1px solid var(--border);
+    border-radius: 6px; padding: 0 10px; font-size: 13px; color: var(--text);
+    outline: none; background: #fff;
+  }
+
+  /* iOS风格 Toggle 开关 */
+  .toggle-switch {
+    position: relative; width: 51px; height: 31px;
+    background: #e5e5e5; border-radius: 31px; cursor: pointer;
+    transition: background 0.3s; flex-shrink: 0;
+  }
+  .toggle-switch.active { background: #07c160; }
+  .toggle-switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 27px; height: 27px; background: #fff; border-radius: 50%;
+    transition: transform 0.3s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.active::after { transform: translateX(20px); }
+
+  /* 关联字段可视化编辑器样式 */
+  .linked-parent-tab {
+    padding: 6px 14px; border: 1px solid #d0d0d0; border-radius: 16px;
+    background: #fff; color: #333; font-size: 13px; cursor: pointer;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .linked-parent-tab:hover { border-color: #6366f1; color: #6366f1; }
+  .linked-parent-tab.active {
+    background: #6366f1; color: #fff; border-color: #6366f1;
+  }
+  .linked-parent-tab.has-children::after {
+    content: '✓'; margin-left: 4px; font-size: 11px;
+  }
+  .linked-parent-tab.active.has-children::after { color: #fff; }
+  .linked-child-tag {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 4px 10px; background: #e8e8ff; color: #6366f1;
+    border-radius: 12px; font-size: 13px;
+  }
+  .linked-child-tag .tag-remove {
+    cursor: pointer; font-size: 14px; color: #999; line-height: 1;
+    margin-left: 2px;
+  }
+  .linked-child-tag .tag-remove:hover { color: #e53e3e; }
+
+  .settings-footer {
+    display: flex; gap: 12px; padding: 16px 20px;
+    border-top: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .settings-footer button {
+    flex: 1; height: 44px; border: none; border-radius: 8px;
+    font-size: 16px; font-weight: 500; cursor: pointer;
+  }
+  .btn-cancel-settings { background: #f5f5f5; color: var(--text); }
+  .btn-cancel-settings:active { background: #e8e8e8; }
+  .btn-save-settings { background: var(--primary); color: #fff; }
+  .btn-save-settings:active { background: var(--primary-dark); }
+
+  /* ===== 表单构建区域 ===== */
+  .form-builder-section { padding: 12px 16px; }
+  .field-list { list-style: none; margin: 0; padding: 0; }
+  .field-list-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 14px; margin-bottom: 8px;
+    background: #f9fafb; border: 1px solid #e8ecf0;
+    border-radius: 10px; transition: box-shadow 0.2s;
+  }
+  .field-list-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .field-list-item .field-drag-handle {
+    cursor: grab; color: #bbb; font-size: 16px; user-select: none; flex-shrink: 0;
+  }
+  .field-list-item .field-info { flex: 1; min-width: 0; }
+  .field-list-item .field-label { font-size: 15px; font-weight: 500; color: var(--text); }
+  .field-list-item .field-type-badge {
+    display: inline-block; font-size: 11px; padding: 1px 8px;
+    background: var(--primary-light); color: var(--primary);
+    border-radius: 10px; margin-left: 6px;
+  }
+  .field-list-item .field-required-badge {
+    display: inline-block; font-size: 11px; padding: 1px 6px;
+    background: #fff1f0; color: var(--danger);
+    border-radius: 10px; margin-left: 4px;
+  }
+  .field-list-item .field-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .field-list-item .btn-field-move,
+  .field-list-item .btn-field-edit,
+  .field-list-item .btn-field-delete {
+    width: 30px; height: 30px; border: none; border-radius: 6px;
+    font-size: 14px; cursor: pointer; display: flex; align-items: center;
+    justify-content: center; transition: background 0.15s;
+  }
+  .btn-field-move { background: #f0f0f0; color: #666; }
+  .btn-field-move:active { background: #e0e0e0; }
+  .btn-field-edit { background: #e6f7ff; color: var(--primary); }
+  .btn-field-edit:active { background: #bae7ff; }
+  .btn-field-delete { background: #fff1f0; color: var(--danger); }
+  .btn-field-delete:active { background: #ffccc7; }
+  .btn-add-field {
+    width: 100%; height: 46px; background: var(--primary); color: #fff;
+    border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+    cursor: pointer; display: flex; align-items: center;
+    justify-content: center; gap: 6px; margin-top: 4px; transition: background 0.2s;
+  }
+  .btn-add-field:active { background: var(--primary-dark); }
+  .btn-import-example {
+    width: 100%; height: 40px; background: #fff; color: var(--primary);
+    border: 1px dashed var(--primary); border-radius: 10px;
+    font-size: 14px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    margin-top: 8px; transition: all 0.2s;
+  }
+  .btn-import-example:active { background: var(--primary-light); }
+  .field-list-empty {
+    text-align: center; padding: 30px 10px; color: #bbb; font-size: 14px;
+  }
+
+  /* 字段配置弹窗 */
+  .field-config-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    z-index: 2100; display: none; animation: fadeIn 0.2s;
+    justify-content: center; align-items: flex-end;
+  }
+  .field-config-overlay.show { display: flex; }
+  .field-config-card {
+    background: #fff; border-radius: 16px 16px 0 0; width: 100%; max-width: 500px;
+    max-height: 85vh; display: flex; flex-direction: column;
+    animation: slideUp 0.3s ease;
+  }
+  .field-config-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .field-config-header h3 { font-size: 17px; font-weight: 600; }
+  .field-config-body {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .config-form-group { margin-bottom: 16px; }
+  .config-form-group:last-child { margin-bottom: 0; }
+  .config-label { display: block; font-size: 14px; color: var(--text-secondary); margin-bottom: 4px; }
+  .config-input {
+    width: 100%; height: 44px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 12px; font-size: 15px; color: var(--text);
+    outline: none; background: #fff;
+  }
+  .config-input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px rgba(24,144,255,0.15); }
+  .config-select {
+    width: 100%; height: 44px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 12px; font-size: 15px; color: var(--text);
+    outline: none; background: #fff; -webkit-appearance: none; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px;
+  }
+  .config-textarea {
+    width: 100%; min-height: 100px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px; font-size: 14px; color: var(--text);
+    outline: none; resize: vertical; font-family: monospace; line-height: 1.5;
+  }
+  .config-textarea:focus { border-color: var(--primary); }
+  .config-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .config-hint { font-size: 12px; color: #999; margin-top: 4px; }
+  .btn-show-example {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 10px; font-size: 12px; color: var(--primary); cursor: pointer;
+    margin-top: 6px;
+  }
+  .btn-show-example:active { background: var(--primary-light); }
+  .example-box {
+    display: none; margin-top: 6px; padding: 10px; background: #f6f8fa;
+    border-radius: 6px; font-size: 12px; font-family: monospace;
+    color: #666; white-space: pre-wrap; word-break: break-all;
+  }
+  .example-box.show { display: block; }
+
+  /* 子字段配置 */
+  .subfield-list { margin-top: 8px; }
+  .subfield-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 10px; margin-bottom: 6px;
+    background: #f9fafb; border: 1px solid #eee; border-radius: 8px;
+  }
+  .subfield-item .subfield-info { flex: 1; font-size: 14px; }
+  .subfield-item .subfield-type {
+    font-size: 11px; padding: 1px 6px; background: var(--primary-light);
+    color: var(--primary); border-radius: 8px;
+  }
+  .subfield-item button {
+    width: 26px; height: 26px; border: none; border-radius: 4px;
+    font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .subfield-item .btn-sub-edit { background: #e6f7ff; color: var(--primary); }
+  .subfield-item .btn-sub-del { background: #fff1f0; color: var(--danger); }
+  .btn-add-subfield {
+    width: 100%; height: 36px; background: #f5f5f5; color: var(--primary);
+    border: 1px dashed var(--primary); border-radius: 8px;
+    font-size: 13px; cursor: pointer; margin-top: 4px;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-add-subfield:active { background: var(--primary-light); }
+
+  .field-config-footer {
+    display: flex; gap: 12px; padding: 16px 20px;
+    border-top: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .field-config-footer button {
+    flex: 1; height: 44px; border: none; border-radius: 8px;
+    font-size: 16px; font-weight: 500; cursor: pointer;
+  }
+  .btn-cancel-field { background: #f5f5f5; color: var(--text); }
+  .btn-cancel-field:active { background: #e8e8e8; }
+  .btn-confirm-field { background: var(--primary); color: #fff; }
+  .btn-confirm-field:active { background: var(--primary-dark); }
+
+  /* 多段选择界面样式 */
+  .cascading-multi-select {
+    display: flex; gap: 12px; margin-top: 8px;
+  }
+  .cascading-column {
+    flex: 1; min-width: 0; background: #fff;
+    border: 1px solid #e8ecf0; border-radius: 8px;
+    display: flex; flex-direction: column; max-height: 280px;
+  }
+  .cascading-column-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; background: #f5f7fa; border-bottom: 1px solid #e8ecf0;
+    border-radius: 8px 8px 0 0;
+  }
+  .cascading-column-title {
+    font-size: 13px; font-weight: 500; color: #666;
+  }
+  .btn-casc-add {
+    background: var(--primary); color: #fff; border: none;
+    border-radius: 4px; padding: 3px 8px; font-size: 12px; cursor: pointer;
+  }
+  .btn-casc-add:active { background: var(--primary-dark); }
+  .cascading-option-list {
+    flex: 1; overflow-y: auto; padding: 6px; min-height: 100px;
+  }
+  .cascading-option-item {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 8px; margin-bottom: 4px; background: #f0f7ff;
+    border: 1px solid #d6eaff; border-radius: 6px; font-size: 13px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .cascading-option-item:hover { background: #e6f2ff; }
+  .cascading-option-item.selected {
+    background: var(--primary); color: #fff; border-color: var(--primary);
+  }
+  .cascading-option-item.selected .casc-opt-delete { color: #fff; }
+  .cascading-option-text {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .casc-opt-delete {
+    color: #ff4d4f; cursor: pointer; font-size: 14px; flex-shrink: 0;
+  }
+  .casc-opt-delete:active { color: #cf1322; }
+  .cascading-empty {
+    text-align: center; color: #bbb; font-size: 12px; padding: 20px 0;
+  }
+
+  /* 全屏遮罩提示 */
+  .fullscreen-overlay {
+    position: fixed; inset: 0; background: #fff; z-index: 3000;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 30px; text-align: center;
+  }
+  .fullscreen-overlay.show { display: flex; }
+  .fullscreen-overlay .overlay-icon { font-size: 64px; margin-bottom: 20px; }
+  .fullscreen-overlay .overlay-title { font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+  .fullscreen-overlay .overlay-desc { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* 密码输入遮罩 */
+  .password-overlay {
+    position: fixed; inset: 0; background: #fff; z-index: 3000;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 30px;
+  }
+  .password-overlay.show { display: flex; }
+  .password-overlay .pw-icon { font-size: 48px; margin-bottom: 16px; }
+  .password-overlay .pw-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 20px; }
+  .password-overlay .pw-input {
+    width: 100%; max-width: 280px; height: 48px; border: 1px solid var(--border);
+    border-radius: 8px; padding: 0 14px; font-size: 16px; text-align: center;
+    outline: none; margin-bottom: 16px;
+  }
+  .password-overlay .pw-input:focus { border-color: var(--primary); }
+  .password-overlay .pw-btn {
+    width: 100%; max-width: 280px; height: 48px; background: var(--primary);
+    color: #fff; border: none; border-radius: 8px; font-size: 16px; font-weight: 600;
+    cursor: pointer;
+  }
+  .password-overlay .pw-btn:active { background: var(--primary-dark); }
+  .password-overlay .pw-error { color: var(--danger); font-size: 13px; margin-top: 8px; display: none; }
+
+  /* 姓名字段样式 */
+  .name-field-card {
+    background: var(--card-bg); border-radius: var(--radius);
+    padding: 16px; margin-bottom: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08); display: none;
+  }
+  .name-field-card.show { display: block; }
+
+  /* 查看我的提交 / 接龙模式 */
+  .form-bottom-actions {
+    max-width: 600px; margin: 0 auto; padding: 0 12px 20px;
+  }
+  .btn-view-my-submit {
+    width: 100%; height: 44px; background: #fff; color: var(--primary);
+    border: 1px solid var(--primary); border-radius: 8px; font-size: 15px;
+    font-weight: 500; cursor: pointer; display: none; margin-bottom: 12px;
+  }
+  .btn-view-my-submit.show { display: block; }
+  .btn-view-my-submit:active { background: var(--primary-light); }
+
+  .chain-section {
+    background: #fff; border-radius: var(--radius); overflow: hidden;
+    border: 1px solid var(--border); display: none; margin-bottom: 12px;
+  }
+  .chain-section.show { display: block; }
+  .chain-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; background: #fafafa; cursor: pointer;
+    font-size: 15px; color: var(--text-secondary);
+  }
+  .chain-header .chain-arrow { transition: transform 0.2s; font-size: 12px; }
+  .chain-section.expanded .chain-header .chain-arrow { transform: rotate(180deg); }
+  .chain-body {
+    display: none; max-height: 300px; overflow-y: auto; padding: 0;
+  }
+  .chain-section.expanded .chain-body { display: block; }
+  .chain-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid #f5f5f5; font-size: 14px;
+  }
+  .chain-item:last-child { border-bottom: none; }
+  .chain-item .chain-name { font-weight: 500; color: var(--text); }
+  .chain-item .chain-meta { font-size: 12px; color: #999; }
+
+  /* 空表单提示 */
+  .empty-form-hint {
+    text-align: center; padding: 60px 20px; color: var(--text-secondary);
+  }
+  .empty-form-hint .hint-icon { font-size: 56px; margin-bottom: 12px; }
+  .empty-form-hint .hint-title { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .empty-form-hint .hint-desc { font-size: 14px; line-height: 1.6; }
+
+  /* 设置面板的 Tab 切换 */
+  .settings-tabs {
+    display: flex; border-bottom: 1px solid #f0f0f0; flex-shrink: 0;
+  }
+  .settings-tab {
+    flex: 1; height: 44px; border: none; background: none;
+    font-size: 15px; font-weight: 500; color: #999; cursor: pointer;
+    position: relative; transition: color 0.2s;
+  }
+  .settings-tab.active { color: var(--primary); }
+  .settings-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 20%; right: 20%;
+    height: 3px; background: var(--primary); border-radius: 2px;
+  }
+  .settings-tab-content { display: none; }
+  .settings-tab-content.active { display: block; }
+
+  @media (min-width: 601px) {
+    .data-panel { border-left: 1px solid var(--border); }
+    .field-config-card { border-radius: 16px; align-self: center; }
+    .field-config-overlay { align-items: center; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <span id="headerTitle">现场调研采集</span>
+  <button class="btn-settings" id="btnSettings" onclick="openSettingsPanel()">⚙️ 表单构建</button>
+  <button class="btn-view-data" id="btnViewData" onclick="openDataPanel()">已存数据</button>
+</div>
+<div class="project-desc" id="projectDesc"></div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 过期遮罩 -->
+<div class="fullscreen-overlay" id="expiredOverlay">
+  <div class="overlay-icon">⏰</div>
+  <div class="overlay-title">表单已超过填写截止时间</div>
+  <div class="overlay-desc" id="expiredDesc">此表单已停止收集，感谢您的关注。</div>
+</div>
+
+<!-- 暂停收集遮罩 -->
+<div class="fullscreen-overlay" id="pausedOverlay">
+  <div class="overlay-icon">⏸️</div>
+  <div class="overlay-title">表单暂停收集中</div>
+  <div class="overlay-desc">请稍后再试，感谢您的理解。</div>
+</div>
+
+<!-- 密码输入遮罩 -->
+<div class="password-overlay" id="passwordOverlay">
+  <div class="pw-icon">🔒</div>
+  <div class="pw-title">此表单需要密码访问</div>
+  <input class="pw-input" id="pwInput" type="password" placeholder="请输入访问密码">
+  <button class="pw-btn" onclick="verifyPassword()">确认进入</button>
+  <div class="pw-error" id="pwError">密码错误，请重新输入</div>
+</div>
+
+<div class="container" id="mainForm">
+  <!-- 姓名字段（设置开启后显示） -->
+  <div class="name-field-card" id="nameFieldCard">
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label"><span class="required">*</span> 您的姓名</label>
+      <input class="form-input" id="fillerName" placeholder="请输入您的姓名" autocomplete="off">
+    </div>
+  </div>
+
+  <!-- 动态表单字段区域 -->
+  <div id="dynamicFieldsContainer"></div>
+
+  <button class="btn-next" id="btnNext" onclick="resetForm()">继续录入下一条</button>
+</div>
+
+<div class="bottom-bar">
+  <span class="record-count" id="recordCount">已保存 0 条记录</span>
+  <button class="btn-save" id="btnSave" onclick="saveRecord()">保存这条记录</button>
+</div>
+
+<!-- 填报模式底部提交栏（仅fill模式显示） -->
+<div id="fillModeBar" style="display:none;position:fixed;bottom:0;left:0;right:0;padding:10px 16px;background:#fff;border-top:1px solid var(--border);z-index:100;justify-content:center;box-shadow:0 -2px 8px rgba(0,0,0,0.08)">
+  <button onclick="submitToGithub()" style="width:100%;max-width:600px;padding:14px;background:var(--primary);color:#fff;border:none;border-radius:10px;font-size:17px;font-weight:600;cursor:pointer">📤 提交</button>
+</div>
+
+<div class="data-panel-overlay" id="panelOverlay" onclick="closeDataPanel()"></div>
+<div class="data-panel" id="dataPanel">
+  <div class="data-panel-header">
+    <h2>已保存数据</h2>
+    <button class="btn-close" onclick="closeDataPanel()">✕</button>
+  </div>
+  <div class="data-panel-actions">
+    <button class="btn-export-excel" onclick="exportAll()" style="background:var(--primary);flex:1;font-size:15px">📦 一键导出全部</button>
+    <button class="btn-export-excel" onclick="exportExcel()">📊 仅Excel</button>
+    <button class="btn-export-photos" onclick="exportPhotos()">📷 仅照片</button>
+    <button class="btn-export-json" onclick="exportJSON()" style="display:none">📦 导出JSON</button>
+    <button class="btn-import-json" onclick="document.getElementById('importFileInput').click()" style="display:none">📥 导入JSON</button>
+    <input type="file" accept=".json" id="importFileInput" class="import-file-input" onchange="importJSON(this.files)">
+  </div>
+  <div class="data-panel-body" id="recordList"></div>
+</div>
+
+<!-- 填写页底部操作区 -->
+<div class="form-bottom-actions" id="formBottomActions">
+  <button class="btn-view-my-submit" id="btnViewMySubmit" onclick="viewMySubmission()">📄 查看我的提交</button>
+  <div class="chain-section" id="chainSection">
+    <div class="chain-header" onclick="toggleChainSection()">
+      <span>📋 其他填写记录</span>
+      <span class="chain-arrow">▼</span>
+    </div>
+    <div class="chain-body" id="chainBody"></div>
+  </div>
+</div>
+
+<!-- ==================== 设置/表单构建面板 ==================== -->
+<div class="settings-overlay" id="settingsOverlay">
+  <div class="settings-card">
+    <div class="settings-header">
+      <h3>设置与表单构建</h3>
+      <button class="btn-close-settings" onclick="closeSettingsPanel()">✕</button>
+    </div>
+    <div class="settings-tabs">
+      <button class="settings-tab active" onclick="switchSettingsTab('builder')">表单构建</button>
+      <button class="settings-tab" onclick="switchSettingsTab('general')">常规设置</button>
+      <button class="settings-tab" onclick="switchSettingsTab('cloud')">发布与同步</button>
+    </div>
+    <div class="settings-body">
+      <!-- 表单构建 Tab -->
+      <div class="settings-tab-content active" id="tabBuilder">
+        <div class="form-builder-section">
+          <div id="fieldListContainer"></div>
+          <button class="btn-add-field" onclick="openFieldConfig()">＋ 添加字段</button>
+          <button class="btn-import-example" onclick="importFromExcel()" style="background:#52c41a;color:#fff">📊 从Excel导入字段</button>
+          <input type="file" accept=".xlsx,.xls" id="excelImportInput" style="display:none" onchange="handleExcelImport(this.files)">
+          <button class="btn-import-example" onclick="importExampleSchema()">📋 导入示例表单配置</button>
+        </div>
+      </div>
+      <!-- 常规设置 Tab -->
+      <div class="settings-tab-content" id="tabGeneral">
+        <div class="settings-section-title">常用设置</div>
+        <div class="settings-item">
+          <span class="settings-item-label">表单名称</span>
+          <div class="settings-item-control">
+            <input class="settings-input" id="settingFormName" value="现场调研采集" placeholder="表单名称">
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">项目说明</span>
+          <div class="settings-item-control">
+            <input class="settings-input" id="settingDescription" placeholder="描述文字">
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">填写有效时间</span>
+          <div class="settings-item-control">
+            <select class="settings-select" id="settingDeadlineType" onchange="onDeadlineTypeChange()">
+              <option value="unlimited">不限</option>
+              <option value="custom">自定义截止时间</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-item" id="settingDeadlineRow" style="display:none">
+          <span class="settings-item-label">截止时间</span>
+          <div class="settings-item-control">
+            <input class="settings-datetime" id="settingDeadline" type="datetime-local">
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">谁可以填写</span>
+          <div class="settings-item-control">
+            <select class="settings-select" id="settingAccessType">
+              <option value="anyone">任何人都可以</option>
+              <option value="password">需要填写密码</option>
+              <option value="name">需要填写姓名</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-item" id="settingPasswordRow" style="display:none">
+          <span class="settings-item-label">访问密码</span>
+          <div class="settings-item-control">
+            <input class="settings-input" id="settingPassword" type="text" placeholder="设置密码">
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">暂停收集</span>
+          <div class="settings-item-control">
+            <div class="toggle-switch" id="togglePaused" onclick="toggleSwitch(this)"></div>
+          </div>
+        </div>
+        <div class="settings-section-title">填写设置</div>
+        <div class="settings-item">
+          <span class="settings-item-label">填写者修改答卷</span>
+          <div class="settings-item-control">
+            <select class="settings-select" id="settingAllowModify">
+              <option value="no">不允许修改</option>
+              <option value="yes">允许随时修改</option>
+            </select>
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">接龙模式</span>
+          <div class="settings-item-control">
+            <div class="toggle-switch" id="toggleChain" onclick="toggleSwitch(this)"></div>
+          </div>
+        </div>
+      </div>
+      <!-- 发布与同步 Tab -->
+      <div class="settings-tab-content" id="tabCloud">
+        <div class="settings-section-title">GitHub 云端配置</div>
+        <div class="settings-item">
+          <span class="settings-item-label">GitHub Token</span>
+          <div class="settings-item-control">
+            <input class="settings-input" id="settingGithubToken" type="password" placeholder="ghp_xxxxxxxx">
+            <div style="font-size:12px;color:#999;margin-top:4px">
+              <a href="https://github.com/settings/tokens/new?scopes=repo&description=field-collector" target="_blank" style="color:var(--primary)">点我生成Token</a>（需勾选repo权限）
+            </div>
+          </div>
+        </div>
+        <div class="settings-item">
+          <span class="settings-item-label">仓库名称</span>
+          <div class="settings-item-control">
+            <input class="settings-input" id="settingGithubRepo" placeholder="如：my-survey-data">
+            <div style="font-size:12px;color:#999;margin-top:4px">留空则自动创建新仓库</div>
+          </div>
+        </div>
+        <div style="margin:16px 0;display:flex;flex-direction:column;gap:10px">
+          <button onclick="publishToGithub()" style="width:100%;padding:12px;background:var(--primary);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer">🚀 发布表单到云端</button>
+          <div id="shareLinkArea" style="display:none">
+            <div style="font-size:13px;color:var(--text-secondary);margin-bottom:6px">分享链接（发给填报者）：</div>
+            <div style="display:flex;gap:6px">
+              <input class="settings-input" id="shareLinkInput" readonly style="flex:1;font-size:13px">
+              <button onclick="copyShareLink()" style="padding:8px 14px;background:var(--success);color:#fff;border:none;border-radius:8px;cursor:pointer;white-space:nowrap">复制</button>
+            </div>
+            <div id="qrcodeContainer" style="text-align:center;margin-top:12px"></div>
+          </div>
+        </div>
+        <div class="settings-section-title" style="margin-top:16px">数据回收</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <button onclick="fetchFromGithub()" style="flex:1;padding:10px;background:var(--warning);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer">📥 拉取所有填报数据</button>
+        </div>
+        <div id="fetchStatus" style="font-size:13px;color:var(--text-secondary)"></div>
+      </div>
+    </div>
+    <div class="settings-footer">
+      <button class="btn-cancel-settings" onclick="closeSettingsPanel()">取消</button>
+      <button class="btn-save-settings" onclick="saveSettings()">保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 字段配置弹窗 ==================== -->
+<div class="field-config-overlay" id="fieldConfigOverlay">
+  <div class="field-config-card">
+    <div class="field-config-header">
+      <h3 id="fieldConfigTitle">添加字段</h3>
+      <button class="btn-close-settings" onclick="closeFieldConfig()">✕</button>
+    </div>
+    <div class="field-config-body">
+      <div class="config-form-group">
+        <label class="config-label">字段标签 <span style="color:var(--danger)">*</span></label>
+        <input class="config-input" id="cfgLabel" placeholder="如：街道/乡镇">
+      </div>
+      <div class="config-form-group">
+        <label class="config-label">字段类型 <span style="color:var(--danger)">*</span></label>
+        <select class="config-select" id="cfgType" onchange="onFieldTypeChange()">
+          <option value="text">单行文本</option>
+          <option value="textarea">多行文本</option>
+          <option value="number">数字</option>
+          <option value="dropdown">下拉选择</option>
+          <option value="date">日期选择</option>
+          <option value="radio">单选</option>
+          <option value="checkbox">多选</option>
+          <option value="photo">拍照/上传照片</option>
+          <option value="location">GPS定位</option>
+          <option value="subform">子表单</option>
+        </select>
+      </div>
+      <div class="config-form-group">
+        <div class="config-toggle-row">
+          <label class="config-label" style="margin-bottom:0">是否必填</label>
+          <div class="toggle-switch" id="cfgRequired" onclick="toggleSwitch(this)"></div>
+        </div>
+      </div>
+      <div class="config-form-group">
+        <label class="config-label">占位提示</label>
+        <input class="config-input" id="cfgPlaceholder" placeholder="如：请输入街道名称">
+      </div>
+      <!-- dropdown选项配置 -->
+      <div class="config-form-group" id="cfgOptionsGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="cfgOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+        <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e0e0e0">
+          <div class="config-toggle-row">
+            <label class="config-label" style="margin-bottom:0">关联上级字段（联动下拉）</label>
+            <div class="toggle-switch" id="cfgLinkedToggle" onclick="toggleLinkedField()"></div>
+          </div>
+          <div id="cfgLinkedGroup" style="display:none;margin-top:10px">
+            <label class="config-label">选择上级字段</label>
+            <select class="config-select" id="cfgLinkedField" onchange="onLinkedFieldChange()">
+              <option value="">-- 请选择上级字段 --</option>
+            </select>
+            <!-- 可视化关联数据编辑器 -->
+            <div id="cfgLinkedEditor" style="display:none;margin-top:12px">
+              <label class="config-label">关联数据配置 <span style="color:#999">（点击上级选项，为其配置对应的下级选项）</span></label>
+              <div id="cfgLinkedParentTabs" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;margin-bottom:10px"></div>
+              <div id="cfgLinkedChildArea" style="display:none;border:1px solid #e0e0e0;border-radius:8px;padding:12px;background:#fafafa">
+                <div style="font-size:13px;color:#666;margin-bottom:8px">「<span id="cfgLinkedParentName" style="color:#6366f1;font-weight:600"></span>」对应的下级选项：</div>
+                <div id="cfgLinkedChildTags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;min-height:32px"></div>
+                <!-- 单个添加 -->
+                <div style="display:flex;gap:6px">
+                  <input class="config-input" id="cfgLinkedChildInput" placeholder="输入选项名称" style="flex:1;margin:0" onkeydown="if(event.key==='Enter'){event.preventDefault();addLinkedChildOption()}">
+                  <button type="button" onclick="addLinkedChildOption()" style="padding:6px 14px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap">添加</button>
+                  <button type="button" onclick="toggleBatchLinkedInput()" style="padding:6px 14px;background:#f0f0f0;color:#333;border:1px solid #d0d0d0;border-radius:6px;cursor:pointer;font-size:13px;white-space:nowrap" id="cfgBatchToggleBtn">批量</button>
+                </div>
+                <!-- 批量添加（默认隐藏） -->
+                <div id="cfgBatchLinkedArea" style="display:none;margin-top:8px">
+                  <textarea class="config-textarea" id="cfgBatchLinkedInput" placeholder="每行一个选项，一次性批量添加&#10;例如：&#10;青园社区&#10;碧霞社区&#10;范堤社区&#10;通海社区" style="min-height:100px;font-family:inherit"></textarea>
+                  <div style="display:flex;gap:6px;margin-top:6px">
+                    <button type="button" onclick="batchAddLinkedChildren()" style="padding:6px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">确认批量添加</button>
+                    <button type="button" onclick="toggleBatchLinkedInput()" style="padding:6px 14px;background:#f0f0f0;color:#666;border:1px solid #d0d0d0;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- cascading选项配置 - 多段选择界面（已弃用，保留隐藏） -->
+      <div class="config-form-group" id="cfgCascadingGroup" style="display:none">
+        <label class="config-label">各级标签 <span style="color:#999">（用/分隔，如：街道/社区/小区）</span></label>
+        <input class="config-input" id="cfgCascadingLabels" placeholder="一级标签/二级标签/三级标签" oninput="updateCascadingColumnTitles()">
+        <label class="config-label" style="margin-top:12px">选项配置</label>
+        <div class="cascading-multi-select">
+          <div class="cascading-column">
+            <div class="cascading-column-header">
+              <span class="cascading-column-title" id="cascCol1Title">一级选项</span>
+              <button class="btn-casc-add" onclick="addCascadingOption(0)">＋ 添加</button>
+            </div>
+            <div class="cascading-option-list" id="cascadingCol0"></div>
+          </div>
+          <div class="cascading-column">
+            <div class="cascading-column-header">
+              <span class="cascading-column-title" id="cascCol2Title">二级选项</span>
+              <button class="btn-casc-add" onclick="addCascadingOption(1)">＋ 添加</button>
+            </div>
+            <div class="cascading-option-list" id="cascadingCol1"></div>
+          </div>
+          <div class="cascading-column">
+            <div class="cascading-column-header">
+              <span class="cascading-column-title" id="cascCol3Title">三级选项</span>
+              <button class="btn-casc-add" onclick="addCascadingOption(2)">＋ 添加</button>
+            </div>
+            <div class="cascading-option-list" id="cascadingCol2"></div>
+          </div>
+        </div>
+        <button class="btn-show-example" onclick="loadCascadingExample()" style="margin-top:8px">加载示例数据</button>
+        <button class="btn-show-example" onclick="clearCascadingAll()" style="margin-top:8px;margin-left:8px">清空所有</button>
+      </div>
+      <!-- radio选项配置 -->
+      <div class="config-form-group" id="cfgRadioGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="cfgRadioOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+      </div>
+      <!-- checkbox选项配置 -->
+      <div class="config-form-group" id="cfgCheckboxGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="cfgCheckboxOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+      </div>
+      <!-- subform子字段配置 -->
+      <div class="config-form-group" id="cfgSubformGroup" style="display:none">
+        <label class="config-label">子字段配置</label>
+        <div class="subfield-list" id="subfieldList"></div>
+        <button class="btn-add-subfield" onclick="openSubfieldConfig()">＋ 添加子字段</button>
+      </div>
+    </div>
+    <div class="field-config-footer">
+      <button class="btn-cancel-field" onclick="closeFieldConfig()">取消</button>
+      <button class="btn-confirm-field" onclick="confirmFieldConfig()">确认</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 子字段配置弹窗 ==================== -->
+<div class="field-config-overlay" id="subfieldConfigOverlay">
+  <div class="field-config-card">
+    <div class="field-config-header">
+      <h3 id="subfieldConfigTitle">添加子字段</h3>
+      <button class="btn-close-settings" onclick="closeSubfieldConfig()">✕</button>
+    </div>
+    <div class="field-config-body">
+      <div class="config-form-group">
+        <label class="config-label">字段标签 <span style="color:var(--danger)">*</span></label>
+        <input class="config-input" id="subCfgLabel" placeholder="如：楼栋编号">
+      </div>
+      <div class="config-form-group">
+        <label class="config-label">字段类型 <span style="color:var(--danger)">*</span></label>
+        <select class="config-select" id="subCfgType" onchange="onSubfieldTypeChange()">
+          <option value="text">单行文本</option>
+          <option value="textarea">多行文本</option>
+          <option value="number">数字</option>
+          <option value="dropdown">下拉选择</option>
+          <option value="date">日期选择</option>
+          <option value="radio">单选</option>
+          <option value="checkbox">多选</option>
+          <option value="photo">拍照/上传照片</option>
+          <option value="location">GPS定位</option>
+        </select>
+      </div>
+      <div class="config-form-group">
+        <div class="config-toggle-row">
+          <label class="config-label" style="margin-bottom:0">是否必填</label>
+          <div class="toggle-switch" id="subCfgRequired" onclick="toggleSwitch(this)"></div>
+        </div>
+      </div>
+      <div class="config-form-group">
+        <label class="config-label">占位提示</label>
+        <input class="config-input" id="subCfgPlaceholder" placeholder="占位提示文字">
+      </div>
+      <!-- sub-dropdown选项 -->
+      <div class="config-form-group" id="subCfgOptionsGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="subCfgOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+      </div>
+      <!-- sub-radio选项 -->
+      <div class="config-form-group" id="subCfgRadioGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="subCfgRadioOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+      </div>
+      <!-- sub-checkbox选项 -->
+      <div class="config-form-group" id="subCfgCheckboxGroup" style="display:none">
+        <label class="config-label">选项配置 <span style="color:#999">（每行一个选项）</span></label>
+        <textarea class="config-textarea" id="subCfgCheckboxOptions" placeholder="选项A&#10;选项B&#10;选项C" style="min-height:80px;font-family:inherit"></textarea>
+      </div>
+    </div>
+    <div class="field-config-footer">
+      <button class="btn-cancel-field" onclick="closeSubfieldConfig()">取消</button>
+      <button class="btn-confirm-field" onclick="confirmSubfieldConfig()">确认</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== IndexedDB ====================
+const DB_NAME = 'FieldCollector';
+const DB_VERSION = 2;
+const STORE_NAME = 'records';
+const SETTINGS_STORE = 'settings';
+let db = null;
+
+// 默认设置
+const DEFAULT_SETTINGS = {
+  formName: '现场调研采集',
+  description: '',
+  deadlineType: 'unlimited',
+  deadline: '',
+  accessType: 'anyone',
+  accessPassword: '',
+  paused: false,
+  allowModify: 'no',
+  chainMode: false,
+  githubToken: '',
+  githubRepo: '',
+  githubOwner: ''
+};
+
+// 当前运行时设置
+let currentSettings = { ...DEFAULT_SETTINGS };
+
+// 表单Schema
+let formSchema = { fields: [] };
+
+// 动态照片存储: { instanceId: [ {name, blob, url, capture_time} ] }
+const photoStore = {};
+
+// 子表单计数器
+let subformCounter = 0;
+
+// 字段类型图标映射
+const TYPE_ICONS = {
+  text: '📝', textarea: '📄', number: '🔢', dropdown: '📋',
+  cascading: '🔗', date: '📅', radio: '◉', checkbox: '☑',
+  photo: '📷', location: '📍', subform: '🏠'
+};
+const TYPE_LABELS = {
+  text: '文本', textarea: '多行文本', number: '数字', dropdown: '下拉选择',
+  cascading: '级联下拉', date: '日期', radio: '单选', checkbox: '多选',
+  photo: '照片', location: '定位', subform: '子表单'
+};
+
+// 设备唯一标识
+function getDeviceId() {
+  let id = localStorage.getItem('fc_device_id');
+  if (!id) {
+    id = 'dev_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('fc_device_id', id);
+  }
+  return id;
+}
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (e) => {
+      const database = e.target.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        database.createObjectStore(SETTINGS_STORE, { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+    request.onerror = (e) => { reject(e.target.error); };
+  });
+}
+
+function getAllRecords() {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function addRecord(record) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.add(record);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function putRecord(record) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.put(record);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function deleteRecord(id) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.delete(id);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// ==================== 设置 CRUD ====================
+function getSetting(key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SETTINGS_STORE, 'readonly');
+    const store = tx.objectStore(SETTINGS_STORE);
+    const request = store.get(key);
+    request.onsuccess = () => resolve(request.result ? request.result.value : undefined);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function setSetting(key, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(SETTINGS_STORE, 'readwrite');
+    const store = tx.objectStore(SETTINGS_STORE);
+    const request = store.put({ key: key, value: value });
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadAllSettings() {
+  try {
+    const keys = Object.keys(DEFAULT_SETTINGS);
+    for (const key of keys) {
+      const val = await getSetting(key);
+      if (val !== undefined) currentSettings[key] = val;
+    }
+    // 加载 formSchema
+    const schema = await getSetting('formSchema');
+    if (schema && schema.fields) {
+      formSchema = schema;
+    }
+  } catch (e) {
+    console.warn('加载设置失败:', e);
+  }
+}
+
+async function saveAllSettings() {
+  try {
+    const keys = Object.keys(currentSettings);
+    for (const key of keys) {
+      await setSetting(key, currentSettings[key]);
+    }
+    await setSetting('formSchema', formSchema);
+  } catch (e) {
+    console.warn('保存设置失败:', e);
+  }
+}
+
+// ==================== 表单Schema管理 ====================
+function generateFieldId() {
+  return 'field_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+}
+
+function importExampleSchema() {
+  if (formSchema.fields.length > 0) {
+    if (!confirm('导入示例将覆盖当前表单配置，确定继续吗？')) return;
+  }
+  formSchema = {
+    fields: [
+      {
+        id: generateFieldId(), label: '街道/乡镇', type: 'dropdown', required: true, placeholder: '',
+        options: ['掘港街道', '城中街道', '马塘镇', '岔河镇', '洋口镇', '苴镇', '长沙镇', '大豫镇', '栟茶镇', '袁庄镇']
+      },
+      {
+        id: generateFieldId(), label: '社区/行政村', type: 'cascading', required: true,
+        cascadingData: {
+          '掘港街道': {'青园社区': ['青园小区','阳光花苑'], '碧霞社区': ['碧霞小区'], '日晖社区': ['日晖小区']},
+          '城中街道': {'通海社区': ['通海小区'], '范堤社区': ['范堤小区'], '民主社区': ['民主小区']},
+          '马塘镇': {'马东社区': ['马东小区'], '马西社区': ['马西小区']},
+          '岔河镇': {'岔河社区': ['岔河小区']},
+          '洋口镇': {'洋口社区': ['洋口小区']},
+          '苴镇': {'苴镇社区': ['苴镇小区']},
+          '长沙镇': {'长沙社区': ['长沙小区']},
+          '大豫镇': {'大豫社区': ['大豫小区']},
+          '栟茶镇': {'栟茶社区': ['栟茶小区']},
+          '袁庄镇': {'袁庄社区': ['袁庄小区']}
+        }
+      },
+      {
+        id: generateFieldId(), label: '住房类型', type: 'radio', required: true, placeholder: '',
+        options: ['商品房', '房改房', '保障房', '自建房', '其他']
+      },
+      {
+        id: generateFieldId(), label: '楼栋信息', type: 'subform', required: true,
+        children: [
+          { id: generateFieldId(), label: '楼栋编号', type: 'text', required: true, placeholder: '如：1号楼' },
+          { id: generateFieldId(), label: '楼栋位置', type: 'location', required: true, placeholder: '' },
+          { id: generateFieldId(), label: '现场照片', type: 'photo', required: true, placeholder: '' }
+        ]
+      }
+    ]
+  };
+  renderFieldList();
+  showToast('示例表单已导入');
+}
+
+// ==================== 设置面板操作 ====================
+function toggleSwitch(el) {
+  el.classList.toggle('active');
+}
+
+function switchSettingsTab(tab) {
+  document.querySelectorAll('.settings-tab').forEach((t, i) => {
+    t.classList.toggle('active', (tab === 'builder' && i === 0) || (tab === 'general' && i === 1) || (tab === 'cloud' && i === 2));
+  });
+  document.getElementById('tabBuilder').classList.toggle('active', tab === 'builder');
+  document.getElementById('tabGeneral').classList.toggle('active', tab === 'general');
+  document.getElementById('tabCloud').classList.toggle('active', tab === 'cloud');
+}
+
+function onDeadlineTypeChange() {
+  const type = document.getElementById('settingDeadlineType').value;
+  document.getElementById('settingDeadlineRow').style.display = (type === 'custom') ? 'flex' : 'none';
+}
+
+function onAccessTypeChange() {
+  const type = document.getElementById('settingAccessType').value;
+  document.getElementById('settingPasswordRow').style.display = (type === 'password') ? 'flex' : 'none';
+}
+
+function openSettingsPanel() {
+  document.getElementById('settingFormName').value = currentSettings.formName || '';
+  document.getElementById('settingDescription').value = currentSettings.description || '';
+  document.getElementById('settingDeadlineType').value = currentSettings.deadlineType || 'unlimited';
+  onDeadlineTypeChange();
+  if (currentSettings.deadline) document.getElementById('settingDeadline').value = currentSettings.deadline;
+  document.getElementById('settingAccessType').value = currentSettings.accessType || 'anyone';
+  onAccessTypeChange();
+  document.getElementById('settingPassword').value = currentSettings.accessPassword || '';
+  document.getElementById('settingAllowModify').value = currentSettings.allowModify || 'no';
+  document.getElementById('togglePaused').classList.toggle('active', !!currentSettings.paused);
+  document.getElementById('toggleChain').classList.toggle('active', !!currentSettings.chainMode);
+  document.getElementById('settingAccessType').onchange = onAccessTypeChange;
+  // GitHub settings
+  document.getElementById('settingGithubToken').value = currentSettings.githubToken || '';
+  document.getElementById('settingGithubRepo').value = currentSettings.githubRepo || '';
+
+  renderFieldList();
+  document.getElementById('settingsOverlay').classList.add('show');
+}
+
+function closeSettingsPanel() {
+  document.getElementById('settingsOverlay').classList.remove('show');
+}
+
+async function saveSettings() {
+  currentSettings.formName = document.getElementById('settingFormName').value.trim() || '现场调研采集';
+  currentSettings.description = document.getElementById('settingDescription').value.trim();
+  currentSettings.deadlineType = document.getElementById('settingDeadlineType').value;
+  currentSettings.deadline = (currentSettings.deadlineType === 'custom') ? document.getElementById('settingDeadline').value : '';
+  currentSettings.accessType = document.getElementById('settingAccessType').value;
+  currentSettings.accessPassword = (currentSettings.accessType === 'password') ? document.getElementById('settingPassword').value : '';
+  currentSettings.paused = document.getElementById('togglePaused').classList.contains('active');
+  currentSettings.allowModify = document.getElementById('settingAllowModify').value;
+  currentSettings.chainMode = document.getElementById('toggleChain').classList.contains('active');
+  // GitHub settings
+  currentSettings.githubToken = document.getElementById('settingGithubToken').value.trim();
+  currentSettings.githubRepo = document.getElementById('settingGithubRepo').value.trim();
+
+  try {
+    await saveAllSettings();
+    applySettingsToUI();
+    renderDynamicForm();
+    closeSettingsPanel();
+    showToast('设置已保存！');
+  } catch (err) {
+    showToast('保存设置失败: ' + err.message, true);
+  }
+}
+
+// ==================== 字段列表渲染 ====================
+function renderFieldList() {
+  const container = document.getElementById('fieldListContainer');
+  if (!formSchema.fields || formSchema.fields.length === 0) {
+    container.innerHTML = '<div class="field-list-empty">暂无字段，点击下方按钮添加</div>';
+    return;
+  }
+  let html = '<ul class="field-list">';
+  formSchema.fields.forEach((field, index) => {
+    const icon = TYPE_ICONS[field.type] || '📝';
+    const typeLabel = TYPE_LABELS[field.type] || field.type;
+    let badges = `<span class="field-type-badge">${icon} ${typeLabel}</span>`;
+    if (field.required) badges += '<span class="field-required-badge">必填</span>';
+    // 子字段缩进
+    let subfieldHtml = '';
+    if (field.type === 'subform' && field.children && field.children.length > 0) {
+      subfieldHtml = '<div style="margin-left:20px;margin-top:6px;">';
+      field.children.forEach((sub, si) => {
+        const sIcon = TYPE_ICONS[sub.type] || '📝';
+        const sTypeLabel = TYPE_LABELS[sub.type] || sub.type;
+        subfieldHtml += `<div class="subfield-item" style="margin-bottom:4px;padding:6px 8px">
+          <span class="subfield-info">${escapeHtml(sub.label)} <span class="subfield-type">${sIcon} ${sTypeLabel}</span>${sub.required ? '<span class="field-required-badge" style="margin-left:4px">必填</span>' : ''}</span>
+        </div>`;
+      });
+      subfieldHtml += '</div>';
+    }
+    html += `
+      <li class="field-list-item" data-index="${index}">
+        <span class="field-drag-handle">⠿</span>
+        <div class="field-info">
+          <div class="field-label">${escapeHtml(field.label)} ${badges}</div>
+          ${subfieldHtml}
+        </div>
+        <div class="field-actions">
+          <button class="btn-field-move" onclick="moveField(${index}, -1)" title="上移">↑</button>
+          <button class="btn-field-move" onclick="moveField(${index}, 1)" title="下移">↓</button>
+          <button class="btn-field-edit" onclick="openFieldConfig(${index})" title="编辑">✎</button>
+          <button class="btn-field-delete" onclick="deleteField(${index})" title="删除">🗑</button>
+        </div>
+      </li>`;
+  });
+  html += '</ul>';
+  container.innerHTML = html;
+}
+
+function moveField(index, direction) {
+  const newIndex = index + direction;
+  if (newIndex < 0 || newIndex >= formSchema.fields.length) return;
+  const temp = formSchema.fields[index];
+  formSchema.fields[index] = formSchema.fields[newIndex];
+  formSchema.fields[newIndex] = temp;
+  renderFieldList();
+}
+
+function deleteField(index) {
+  if (!confirm('确定删除字段"' + formSchema.fields[index].label + '"吗？')) return;
+  formSchema.fields.splice(index, 1);
+  renderFieldList();
+}
+
+// ==================== 字段配置弹窗 ====================
+let editingFieldIndex = -1; // -1 = 新增
+let tempSubfields = []; // 临时子字段列表
+// 多段选择临时数据：三栏选项结构
+// cascadingTempData = { "街道A": { "社区1": ["小区1", "小区2"], "社区2": [] }, "街道B": {} }
+let cascadingTempData = {};
+let cascadingSelectedLevel = -1; // 当前选中的层级（0=一级，1=二级，2=三级）
+let cascadingSelectedValue = [null, null, null]; // 每级选中的值
+let linkedDataMap = {}; // 关联字段可视化编辑器数据：{ "上级选项A": ["下级1","下级2"], "上级选项B": [] }
+let linkedActiveParent = null; // 当前选中的上级选项
+
+function openFieldConfig(index) {
+  editingFieldIndex = (index !== undefined) ? index : -1;
+  const isEdit = editingFieldIndex >= 0;
+  document.getElementById('fieldConfigTitle').textContent = isEdit ? '编辑字段' : '添加字段';
+
+  if (isEdit) {
+    const field = formSchema.fields[editingFieldIndex];
+    document.getElementById('cfgLabel').value = field.label || '';
+    document.getElementById('cfgType').value = field.type || 'text';
+    document.getElementById('cfgRequired').classList.toggle('active', !!field.required);
+    document.getElementById('cfgPlaceholder').value = field.placeholder || '';
+    if (field.type === 'dropdown' && field.options) {
+      document.getElementById('cfgOptions').value = field.options.join('\n');
+    }
+    // 处理关联字段配置
+    if (field.type === 'dropdown' && field.linkedField) {
+      document.getElementById('cfgLinkedToggle').classList.add('active');
+      document.getElementById('cfgLinkedGroup').style.display = 'block';
+      document.getElementById('cfgLinkedField').value = field.linkedField;
+      // 隐藏手动选项输入框
+      document.getElementById('cfgOptions').style.display = 'none';
+      const optsLabel = document.getElementById('cfgOptions').parentElement.querySelector('label');
+      if (optsLabel) optsLabel.style.display = 'none';
+      // 从存储的数据还原linkedDataMap
+      try {
+        linkedDataMap = field.linkedDataMap ? JSON.parse(JSON.stringify(field.linkedDataMap)) : {};
+      } catch(e) { linkedDataMap = {}; }
+      // 触发编辑器渲染
+      document.getElementById('cfgLinkedEditor').style.display = 'block';
+      renderLinkedParentTabs();
+      document.getElementById('cfgLinkedChildArea').style.display = 'none';
+      linkedActiveParent = null;
+    } else {
+      document.getElementById('cfgLinkedToggle').classList.remove('active');
+      document.getElementById('cfgLinkedGroup').style.display = 'none';
+      document.getElementById('cfgLinkedField').value = '';
+      document.getElementById('cfgLinkedEditor').style.display = 'none';
+      document.getElementById('cfgOptions').style.display = '';
+      const optsLabel = document.getElementById('cfgOptions').parentElement.querySelector('label');
+      if (optsLabel) optsLabel.style.display = '';
+      linkedDataMap = {};
+      linkedActiveParent = null;
+    }
+    if (field.type === 'cascading' && field.cascadingData) {
+      // 兼容旧数据
+      cascadingTempData = JSON.parse(JSON.stringify(field.cascadingData));
+    } else {
+      cascadingTempData = {};
+    }
+    if (field.type === 'cascading' && field.cascadingLabels) {
+      document.getElementById('cfgCascadingLabels').value = field.cascadingLabels.join('/');
+    } else {
+      document.getElementById('cfgCascadingLabels').value = '';
+    }
+    if ((field.type === 'radio') && field.options) {
+      document.getElementById('cfgRadioOptions').value = field.options.join('\n');
+    }
+    if ((field.type === 'checkbox') && field.options) {
+      document.getElementById('cfgCheckboxOptions').value = field.options.join('\n');
+    }
+    if (field.type === 'subform' && field.children) {
+      tempSubfields = JSON.parse(JSON.stringify(field.children));
+    } else {
+      tempSubfields = [];
+    }
+  } else {
+    document.getElementById('cfgLabel').value = '';
+    document.getElementById('cfgType').value = 'text';
+    document.getElementById('cfgRequired').classList.remove('active');
+    document.getElementById('cfgPlaceholder').value = '';
+    document.getElementById('cfgOptions').value = '';
+    cascadingTempData = {};
+    document.getElementById('cfgCascadingLabels').value = '';
+    document.getElementById('cfgRadioOptions').value = '';
+    document.getElementById('cfgCheckboxOptions').value = '';
+    tempSubfields = [];
+    document.getElementById('cfgLinkedToggle').classList.remove('active');
+    document.getElementById('cfgLinkedGroup').style.display = 'none';
+    document.getElementById('cfgLinkedField').value = '';
+    document.getElementById('cfgLinkedEditor').style.display = 'none';
+    linkedDataMap = {};
+    linkedActiveParent = null;
+  }
+
+  onFieldTypeChange();
+  renderSubfieldList();
+  renderCascadingColumns();
+  document.getElementById('fieldConfigOverlay').classList.add('show');
+}
+
+function closeFieldConfig() {
+  document.getElementById('fieldConfigOverlay').classList.remove('show');
+}
+
+function onFieldTypeChange() {
+  const type = document.getElementById('cfgType').value;
+  document.getElementById('cfgOptionsGroup').style.display = (type === 'dropdown') ? 'block' : 'none';
+  document.getElementById('cfgCascadingGroup').style.display = 'none'; // 隐藏旧的级联配置
+  document.getElementById('cfgRadioGroup').style.display = (type === 'radio') ? 'block' : 'none';
+  document.getElementById('cfgCheckboxGroup').style.display = (type === 'checkbox') ? 'block' : 'none';
+  document.getElementById('cfgSubformGroup').style.display = (type === 'subform') ? 'block' : 'none';
+  
+  // 更新关联上级字段的下拉列表
+  if (type === 'dropdown') {
+    updateLinkedFieldOptions();
+  }
+}
+
+function toggleLinkedField() {
+  const toggle = document.getElementById('cfgLinkedToggle');
+  toggle.classList.toggle('active');
+  const isActive = toggle.classList.contains('active');
+  document.getElementById('cfgLinkedGroup').style.display = isActive ? 'block' : 'none';
+  // 开启关联时隐藏手动选项输入，关闭时恢复
+  const optsArea = document.getElementById('cfgOptions');
+  const optsLabel = optsArea.parentElement.querySelector('label');
+  if (isActive) {
+    optsArea.style.display = 'none';
+    if (optsLabel) optsLabel.style.display = 'none';
+  } else {
+    optsArea.style.display = '';
+    if (optsLabel) optsLabel.style.display = '';
+    document.getElementById('cfgLinkedEditor').style.display = 'none';
+    linkedDataMap = {};
+    linkedActiveParent = null;
+  }
+  if (isActive) {
+    updateLinkedFieldOptions();
+  }
+}
+
+function updateLinkedFieldOptions() {
+  const currentIdx = editingFieldIndex;
+  const select = document.getElementById('cfgLinkedField');
+  let html = '<option value="">-- 请选择上级字段 --</option>';
+  
+  formSchema.fields.forEach((field, idx) => {
+    if (field.type === 'dropdown' && idx !== currentIdx) {
+      const isSelected = select.value === field.id ? 'selected' : '';
+      html += `<option value="${field.id}" ${isSelected}>${escapeHtml(field.label)}</option>`;
+    }
+  });
+  select.innerHTML = html;
+}
+
+function onLinkedFieldChange() {
+  const fieldId = document.getElementById('cfgLinkedField').value;
+  const editor = document.getElementById('cfgLinkedEditor');
+  
+  if (!fieldId) {
+    editor.style.display = 'none';
+    linkedDataMap = {};
+    linkedActiveParent = null;
+    return;
+  }
+  
+  // 找到上级字段，读取其选项列表
+  const parentField = formSchema.fields.find(f => f.id === fieldId);
+  if (!parentField || !parentField.options || parentField.options.length === 0) {
+    editor.style.display = 'none';
+    showToast('上级字段还没有选项，请先配置', true);
+    return;
+  }
+  
+  // 初始化linkedDataMap（保留已有数据）
+  const oldMap = { ...linkedDataMap };
+  linkedDataMap = {};
+  parentField.options.forEach(opt => {
+    linkedDataMap[opt] = oldMap[opt] || [];
+  });
+  
+  editor.style.display = 'block';
+  linkedActiveParent = null;
+  document.getElementById('cfgLinkedChildArea').style.display = 'none';
+  renderLinkedParentTabs();
+}
+
+function renderLinkedParentTabs() {
+  const container = document.getElementById('cfgLinkedParentTabs');
+  let html = '';
+  Object.keys(linkedDataMap).forEach(parentOpt => {
+    const children = linkedDataMap[parentOpt];
+    const isActive = linkedActiveParent === parentOpt;
+    const hasChildren = children.length > 0;
+    const cls = 'linked-parent-tab' + (isActive ? ' active' : '') + (hasChildren ? ' has-children' : '');
+    html += `<div class="${cls}" onclick="selectLinkedParent('${escapeJsString(parentOpt)}')">${escapeHtml(parentOpt)}</div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectLinkedParent(parentOpt) {
+  linkedActiveParent = parentOpt;
+  renderLinkedParentTabs();
+  document.getElementById('cfgLinkedChildArea').style.display = 'block';
+  document.getElementById('cfgLinkedParentName').textContent = parentOpt;
+  document.getElementById('cfgLinkedChildInput').value = '';
+  renderLinkedChildTags();
+}
+
+function renderLinkedChildTags() {
+  const container = document.getElementById('cfgLinkedChildTags');
+  const children = linkedDataMap[linkedActiveParent] || [];
+  if (children.length === 0) {
+    container.innerHTML = '<span style="color:#999;font-size:13px">暂无选项，请在下方输入添加</span>';
+    return;
+  }
+  let html = '';
+  children.forEach((child, idx) => {
+    html += `<span class="linked-child-tag">${escapeHtml(child)}<span class="tag-remove" onclick="removeLinkedChildOption(${idx})">×</span></span>`;
+  });
+  container.innerHTML = html;
+}
+
+function addLinkedChildOption() {
+  if (!linkedActiveParent) return;
+  const input = document.getElementById('cfgLinkedChildInput');
+  const val = input.value.trim();
+  if (!val) { showToast('请输入选项名称', true); return; }
+  
+  const children = linkedDataMap[linkedActiveParent];
+  if (children.includes(val)) { showToast('该选项已存在', true); return; }
+  
+  children.push(val);
+  input.value = '';
+  renderLinkedChildTags();
+  renderLinkedParentTabs(); // 更新✓标记
+}
+
+function removeLinkedChildOption(idx) {
+  if (!linkedActiveParent) return;
+  linkedDataMap[linkedActiveParent].splice(idx, 1);
+  renderLinkedChildTags();
+  renderLinkedParentTabs();
+}
+
+function toggleBatchLinkedInput() {
+  const area = document.getElementById('cfgBatchLinkedArea');
+  const isHidden = area.style.display === 'none';
+  area.style.display = isHidden ? 'block' : 'none';
+  if (isHidden) {
+    document.getElementById('cfgBatchLinkedInput').value = '';
+    document.getElementById('cfgBatchLinkedInput').focus();
+  }
+}
+
+function batchAddLinkedChildren() {
+  if (!linkedActiveParent) return;
+  const textarea = document.getElementById('cfgBatchLinkedInput');
+  const text = textarea.value.trim();
+  if (!text) { showToast('请输入要添加的选项', true); return; }
+  
+  const newItems = text.split('\n').map(s => s.trim()).filter(s => s);
+  if (newItems.length === 0) { showToast('请输入有效的选项', true); return; }
+  
+  const existing = linkedDataMap[linkedActiveParent];
+  let addCount = 0;
+  newItems.forEach(item => {
+    if (!existing.includes(item)) {
+      existing.push(item);
+      addCount++;
+    }
+  });
+  
+  textarea.value = '';
+  document.getElementById('cfgBatchLinkedArea').style.display = 'none';
+  renderLinkedChildTags();
+  renderLinkedParentTabs();
+  showToast(`成功添加 ${addCount} 个选项` + (newItems.length - addCount > 0 ? `，${newItems.length - addCount} 个重复已跳过` : ''));
+}
+
+function toggleCascadingExample() {
+  document.getElementById('cascadingExample').classList.toggle('show');
+}
+
+// ==================== 多段选择界面函数 ====================
+function updateCascadingColumnTitles() {
+  const labels = document.getElementById('cfgCascadingLabels').value.trim().split('/').map(s => s.trim()).filter(s => s);
+  document.getElementById('cascCol1Title').textContent = labels[0] || '一级选项';
+  document.getElementById('cascCol2Title').textContent = labels[1] || '二级选项';
+  document.getElementById('cascCol3Title').textContent = labels[2] || '三级选项';
+}
+
+function renderCascadingColumns() {
+  // 更新列标题
+  updateCascadingColumnTitles();
+
+  // 渲染第一栏（所有一级选项）
+  renderCascadingColumn(0, Object.keys(cascadingTempData));
+
+  // 渲染第二栏（选中一级选项下的二级选项）
+  if (cascadingSelectedValue[0]) {
+    const level1 = cascadingSelectedValue[0];
+    renderCascadingColumn(1, Object.keys(cascadingTempData[level1] || {}));
+  } else {
+    renderCascadingColumn(1, []);
+  }
+
+  // 渲染第三栏（选中一、二级选项下的三级选项）
+  if (cascadingSelectedValue[0] && cascadingSelectedValue[1]) {
+    const level1 = cascadingSelectedValue[0];
+    const level2 = cascadingSelectedValue[1];
+    renderCascadingColumn(2, cascadingTempData[level1]?.[level2] || []);
+  } else {
+    renderCascadingColumn(2, []);
+  }
+}
+
+function renderCascadingColumn(level, items) {
+  const colId = `cascadingCol${level}`;
+  const container = document.getElementById(colId);
+  if (!container) return;
+
+  if (items.length === 0) {
+    container.innerHTML = '<div class="cascading-empty">暂无选项</div>';
+    return;
+  }
+
+  let html = '';
+  items.forEach((item, index) => {
+    const isSelected = cascadingSelectedValue[level] === item;
+    html += `<div class="cascading-option-item${isSelected ? ' selected' : ''}" onclick="selectCascadingOption(${level}, '${escapeJsString(item)}')">
+      <span class="cascading-option-text">${escapeHtml(item)}</span>
+      <span class="casc-opt-delete" onclick="event.stopPropagation(); deleteCascadingOption(${level}, '${escapeJsString(item)}')">✕</span>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function selectCascadingOption(level, value) {
+  // 清除当前层级的选中状态
+  cascadingSelectedValue[level] = value;
+  // 清除下级选中状态
+  for (let i = level + 1; i < 3; i++) {
+    cascadingSelectedValue[i] = null;
+  }
+  renderCascadingColumns();
+}
+
+function addCascadingOption(level) {
+  const value = prompt(`请输入${['一级', '二级', '三级'][level]}选项名称`);
+  if (!value || !value.trim()) return;
+  const trimmedValue = value.trim();
+
+  if (level === 0) {
+    // 添加一级选项
+    if (!cascadingTempData[trimmedValue]) {
+      cascadingTempData[trimmedValue] = {};
+    }
+  } else if (level === 1) {
+    // 添加二级选项
+    if (!cascadingSelectedValue[0]) {
+      showToast('请先选择一级选项', true); return;
+    }
+    const level1 = cascadingSelectedValue[0];
+    if (!cascadingTempData[level1][trimmedValue]) {
+      cascadingTempData[level1][trimmedValue] = [];
+    }
+  } else if (level === 2) {
+    // 添加三级选项
+    if (!cascadingSelectedValue[0] || !cascadingSelectedValue[1]) {
+      showToast('请先选择一级和二级选项', true); return;
+    }
+    const level1 = cascadingSelectedValue[0];
+    const level2 = cascadingSelectedValue[1];
+    if (!cascadingTempData[level1][level2]) {
+      cascadingTempData[level1][level2] = [];
+    }
+    if (!cascadingTempData[level1][level2].includes(trimmedValue)) {
+      cascadingTempData[level1][level2].push(trimmedValue);
+    }
+  }
+  renderCascadingColumns();
+}
+
+function deleteCascadingOption(level, value) {
+  if (level === 0) {
+    delete cascadingTempData[value];
+    if (cascadingSelectedValue[0] === value) {
+      cascadingSelectedValue = [null, null, null];
+    }
+  } else if (level === 1) {
+    if (cascadingSelectedValue[0]) {
+      delete cascadingTempData[cascadingSelectedValue[0]][value];
+      if (cascadingSelectedValue[1] === value) {
+        cascadingSelectedValue[1] = null;
+        cascadingSelectedValue[2] = null;
+      }
+    }
+  } else if (level === 2) {
+    if (cascadingSelectedValue[0] && cascadingSelectedValue[1]) {
+      const arr = cascadingTempData[cascadingSelectedValue[0]][cascadingSelectedValue[1]];
+      const idx = arr.indexOf(value);
+      if (idx > -1) arr.splice(idx, 1);
+      if (cascadingSelectedValue[2] === value) {
+        cascadingSelectedValue[2] = null;
+      }
+    }
+  }
+  renderCascadingColumns();
+}
+
+function loadCascadingExample() {
+  cascadingTempData = {
+    "掘港街道": {
+      "青园社区": ["青园小区", "阳光花苑"],
+      "碧霞社区": ["碧霞小区"]
+    },
+    "城中街道": {
+      "通海社区": ["通海小区"],
+      "范堤社区": ["范堤小区"]
+    }
+  };
+  document.getElementById('cfgCascadingLabels').value = '街道/乡镇/社区/行政村/小区名称';
+  cascadingSelectedValue = [null, null, null];
+  renderCascadingColumns();
+  showToast('已加载示例数据');
+}
+
+function clearCascadingAll() {
+  if (!confirm('确定清空所有选项吗？')) return;
+  cascadingTempData = {};
+  cascadingSelectedValue = [null, null, null];
+  renderCascadingColumns();
+}
+
+function confirmFieldConfig() {
+  const label = document.getElementById('cfgLabel').value.trim();
+  const type = document.getElementById('cfgType').value;
+  const required = document.getElementById('cfgRequired').classList.contains('active');
+  const placeholder = document.getElementById('cfgPlaceholder').value.trim();
+
+  if (!label) { showToast('请输入字段标签', true); return; }
+
+  const field = {
+    id: editingFieldIndex >= 0 ? formSchema.fields[editingFieldIndex].id : generateFieldId(),
+    label, type, required, placeholder
+  };
+
+  if (type === 'dropdown') {
+    const isLinked = document.getElementById('cfgLinkedToggle').classList.contains('active');
+    if (isLinked) {
+      // 关联字段模式：选项从linkedDataMap自动汇总
+      const linkedFieldId = document.getElementById('cfgLinkedField').value;
+      if (!linkedFieldId) {
+        showToast('请选择关联的上级字段', true); return;
+      }
+      const hasAnyChild = Object.values(linkedDataMap).some(arr => arr.length > 0);
+      if (!hasAnyChild) {
+        showToast('请至少为一个上级选项配置下级选项', true); return;
+      }
+      field.linkedField = linkedFieldId;
+      field.linkedDataMap = JSON.parse(JSON.stringify(linkedDataMap));
+      // 同时生成linkedData文本格式（兼容旧版解析逻辑）
+      let textParts = [];
+      Object.keys(linkedDataMap).forEach(parent => {
+        if (linkedDataMap[parent].length > 0) {
+          textParts.push(parent + ': ' + linkedDataMap[parent].join(','));
+        }
+      });
+      field.linkedData = textParts.join('\n');
+      // 汇总所有下级选项到field.options
+      let allChildren = [];
+      Object.values(linkedDataMap).forEach(arr => {
+        arr.forEach(c => { if (!allChildren.includes(c)) allChildren.push(c); });
+      });
+      field.options = allChildren;
+    } else {
+      // 普通下拉模式：从选项配置textarea读取
+      const optsText = document.getElementById('cfgOptions').value.trim();
+      field.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+      if (field.options.length === 0) { showToast('下拉选择至少需要一个选项', true); return; }
+    }
+  }
+  if (type === 'radio') {
+    const optsText = document.getElementById('cfgRadioOptions').value.trim();
+    field.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    if (field.options.length === 0) { showToast('单选至少需要一个选项', true); return; }
+  }
+  if (type === 'checkbox') {
+    const optsText = document.getElementById('cfgCheckboxOptions').value.trim();
+    field.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    if (field.options.length === 0) { showToast('多选至少需要一个选项', true); return; }
+  }
+  if (type === 'cascading') {
+    // 从多段选择数据生成cascadingData
+    if (Object.keys(cascadingTempData).length === 0) {
+      showToast('请至少添加一个一级选项', true); return;
+    }
+    field.cascadingData = JSON.parse(JSON.stringify(cascadingTempData));
+    // 保存各级标签
+    const labelsText = document.getElementById('cfgCascadingLabels').value.trim();
+    if (labelsText) {
+      field.cascadingLabels = labelsText.split('/').map(s => s.trim()).filter(s => s);
+    } else {
+      field.cascadingLabels = [];
+    }
+  }
+  if (type === 'subform') {
+    if (tempSubfields.length === 0) { showToast('子表单至少需要一个子字段', true); return; }
+    field.children = tempSubfields;
+  }
+
+  if (editingFieldIndex >= 0) {
+    formSchema.fields[editingFieldIndex] = field;
+  } else {
+    formSchema.fields.push(field);
+  }
+
+  renderFieldList();
+  closeFieldConfig();
+}
+
+// ==================== 子字段配置 ====================
+let editingSubfieldIndex = -1;
+
+function renderSubfieldList() {
+  const container = document.getElementById('subfieldList');
+  if (tempSubfields.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:10px;color:#bbb;font-size:13px">暂无子字段</div>';
+    return;
+  }
+  container.innerHTML = tempSubfields.map((sub, i) => {
+    const icon = TYPE_ICONS[sub.type] || '📝';
+    const typeLabel = TYPE_LABELS[sub.type] || sub.type;
+    return `<div class="subfield-item">
+      <span class="subfield-info">${escapeHtml(sub.label)} <span class="subfield-type">${icon} ${typeLabel}</span>${sub.required ? '<span class="field-required-badge" style="margin-left:4px">必填</span>' : ''}</span>
+      <button class="btn-sub-edit" onclick="openSubfieldConfig(${i})">✎</button>
+      <button class="btn-sub-del" onclick="deleteSubfield(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function openSubfieldConfig(index) {
+  editingSubfieldIndex = (index !== undefined) ? index : -1;
+  const isEdit = editingSubfieldIndex >= 0;
+  document.getElementById('subfieldConfigTitle').textContent = isEdit ? '编辑子字段' : '添加子字段';
+
+  if (isEdit) {
+    const sub = tempSubfields[editingSubfieldIndex];
+    document.getElementById('subCfgLabel').value = sub.label || '';
+    document.getElementById('subCfgType').value = sub.type || 'text';
+    document.getElementById('subCfgRequired').classList.toggle('active', !!sub.required);
+    document.getElementById('subCfgPlaceholder').value = sub.placeholder || '';
+    if (sub.type === 'dropdown' && sub.options) {
+      document.getElementById('subCfgOptions').value = sub.options.join('\n');
+    }
+    if (sub.type === 'radio' && sub.options) {
+      document.getElementById('subCfgRadioOptions').value = sub.options.join('\n');
+    }
+    if (sub.type === 'checkbox' && sub.options) {
+      document.getElementById('subCfgCheckboxOptions').value = sub.options.join('\n');
+    }
+  } else {
+    document.getElementById('subCfgLabel').value = '';
+    document.getElementById('subCfgType').value = 'text';
+    document.getElementById('subCfgRequired').classList.remove('active');
+    document.getElementById('subCfgPlaceholder').value = '';
+    document.getElementById('subCfgOptions').value = '';
+    document.getElementById('subCfgRadioOptions').value = '';
+    document.getElementById('subCfgCheckboxOptions').value = '';
+  }
+
+  onSubfieldTypeChange();
+  document.getElementById('subfieldConfigOverlay').classList.add('show');
+}
+
+function closeSubfieldConfig() {
+  document.getElementById('subfieldConfigOverlay').classList.remove('show');
+}
+
+function onSubfieldTypeChange() {
+  const type = document.getElementById('subCfgType').value;
+  document.getElementById('subCfgOptionsGroup').style.display = (type === 'dropdown') ? 'block' : 'none';
+  document.getElementById('subCfgRadioGroup').style.display = (type === 'radio') ? 'block' : 'none';
+  document.getElementById('subCfgCheckboxGroup').style.display = (type === 'checkbox') ? 'block' : 'none';
+}
+
+function confirmSubfieldConfig() {
+  const label = document.getElementById('subCfgLabel').value.trim();
+  const type = document.getElementById('subCfgType').value;
+  const required = document.getElementById('subCfgRequired').classList.contains('active');
+  const placeholder = document.getElementById('subCfgPlaceholder').value.trim();
+
+  if (!label) { showToast('请输入子字段标签', true); return; }
+
+  const sub = {
+    id: editingSubfieldIndex >= 0 ? tempSubfields[editingSubfieldIndex].id : generateFieldId(),
+    label, type, required, placeholder
+  };
+
+  if (type === 'dropdown') {
+    const optsText = document.getElementById('subCfgOptions').value.trim();
+    sub.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    if (sub.options.length === 0) { showToast('下拉选择至少需要一个选项', true); return; }
+  }
+  if (type === 'radio') {
+    const optsText = document.getElementById('subCfgRadioOptions').value.trim();
+    sub.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    if (sub.options.length === 0) { showToast('单选至少需要一个选项', true); return; }
+  }
+  if (type === 'checkbox') {
+    const optsText = document.getElementById('subCfgCheckboxOptions').value.trim();
+    sub.options = optsText ? optsText.split('\n').map(s => s.trim()).filter(s => s) : [];
+    if (sub.options.length === 0) { showToast('多选至少需要一个选项', true); return; }
+  }
+
+  if (editingSubfieldIndex >= 0) {
+    tempSubfields[editingSubfieldIndex] = sub;
+  } else {
+    tempSubfields.push(sub);
+  }
+
+  renderSubfieldList();
+  closeSubfieldConfig();
+}
+
+function deleteSubfield(index) {
+  if (!confirm('确定删除子字段"' + tempSubfields[index].label + '"吗？')) return;
+  tempSubfields.splice(index, 1);
+  renderSubfieldList();
+}
+
+// ==================== 动态表单渲染 ====================
+function renderDynamicForm() {
+  const container = document.getElementById('dynamicFieldsContainer');
+  if (!formSchema.fields || formSchema.fields.length === 0) {
+    container.innerHTML = `
+      <div class="empty-form-hint">
+        <div class="hint-icon">📋</div>
+        <div class="hint-title">请先配置表单字段</div>
+        <div class="hint-desc">点击右上角「表单构建」按钮<br>添加需要采集的字段</div>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  formSchema.fields.forEach((field) => {
+    html += renderField(field);
+  });
+  container.innerHTML = html;
+
+  // 初始化级联下拉
+  formSchema.fields.forEach((field) => {
+    if (field.type === 'cascading') {
+      initCascadingField(field);
+    }
+  });
+}
+
+function renderField(field, prefix) {
+  prefix = prefix || '';
+  const id = prefix + field.id;
+  const reqMark = field.required ? '<span class="required">*</span> ' : '';
+  const ph = field.placeholder || '';
+
+  switch (field.type) {
+    case 'text':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <input class="form-input" id="${id}" placeholder="${escapeHtml(ph)}" autocomplete="off">
+      </div></div>`;
+
+    case 'textarea':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <textarea class="form-textarea" id="${id}" placeholder="${escapeHtml(ph)}"></textarea>
+      </div></div>`;
+
+    case 'number':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <input class="form-input" id="${id}" type="number" placeholder="${escapeHtml(ph)}">
+      </div></div>`;
+
+    case 'date':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <input class="form-input" id="${id}" type="date" placeholder="${escapeHtml(ph)}">
+      </div></div>`;
+
+    case 'dropdown':
+      const opts = (field.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+      const onchange = field.linkedField ? ` onchange="onDropdownChange('${field.id}')"` : '';
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <select class="form-select" id="${id}"${onchange}><option value="">请选择${escapeHtml(field.label)}</option>${opts}</select>
+      </div></div>`;
+
+    case 'cascading':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <div class="cascading-group" id="${id}_group"></div>
+      </div></div>`;
+
+    case 'radio':
+      const radioOpts = (field.options || []).map((o, i) =>
+        `<label class="option-item"><input type="radio" name="${id}" value="${escapeHtml(o)}">${escapeHtml(o)}</label>`
+      ).join('');
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <div class="option-group">${radioOpts}</div>
+      </div></div>`;
+
+    case 'checkbox':
+      const cbOpts = (field.options || []).map((o, i) =>
+        `<label class="option-item"><input type="checkbox" name="${id}" value="${escapeHtml(o)}">${escapeHtml(o)}</label>`
+      ).join('');
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <div class="option-group">${cbOpts}</div>
+      </div></div>`;
+
+    case 'photo':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <div class="photo-upload-zone" id="pzone_${id}">
+          <span class="camera-icon">📷</span>
+          <span class="upload-text">点击拍照 / 选择图片</span>
+          <input type="file" accept="image/*" capture="environment" multiple onchange="handleDynamicPhotos('${id}', this)">
+        </div>
+        <div class="photo-grid" id="pgrid_${id}"></div>
+      </div></div>`;
+
+    case 'location':
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <div class="location-row">
+          <input class="form-input" id="${id}" placeholder="点击右侧按钮获取定位" readonly>
+          <button class="btn-location" id="locbtn_${id}" onclick="getDynamicLocation('${id}')">📍 获取定位</button>
+        </div>
+        <div class="location-success" id="locsuccess_${id}">
+          ✅ 定位成功
+          <a id="locmap_${id}" href="#" target="_blank" style="margin-left:8px;">在地图查看</a>
+        </div>
+      </div></div>`;
+
+    case 'subform':
+      return renderSubformField(field, prefix);
+
+    default:
+      return `<div class="card"><div class="form-group" style="margin-bottom:0">
+        <label class="form-label">${reqMark}${escapeHtml(field.label)}</label>
+        <input class="form-input" id="${id}" placeholder="${escapeHtml(ph)}" autocomplete="off">
+      </div></div>`;
+  }
+}
+
+function renderSubformField(field, prefix) {
+  prefix = prefix || '';
+  const reqMark = field.required ? '<span class="required">*</span> ' : '';
+  return `
+    <div class="card-title" style="padding:4px 0 8px;font-size:16px"><span class="icon">${TYPE_ICONS.subform}</span> ${escapeHtml(field.label)}</div>
+    <div id="subform_${field.id}_container"></div>
+    <button class="btn-add-subform" onclick="addSubformRecord('${field.id}')">＋ 添加${escapeHtml(field.label)}</button>
+  `;
+}
+
+// ==================== 联动下拉处理 ====================
+function onDropdownChange(fieldId) {
+  // 找到所有关联到当前字段的下级字段，更新它们的选项
+  formSchema.fields.forEach(f => {
+    if (f.type === 'dropdown' && f.linkedField === fieldId) {
+      updateLinkedDropdownOptions(f);
+    }
+  });
+}
+
+function updateLinkedDropdownOptions(field) {
+  const parentField = formSchema.fields.find(f => f.id === field.linkedField);
+  if (!parentField) return;
+
+  const parentSelect = document.getElementById(parentField.id);
+  const parentValue = parentSelect ? parentSelect.value : '';
+
+  const select = document.getElementById(field.id);
+  if (!select) return;
+
+  // 优先使用linkedDataMap对象，兼容旧版文本格式
+  let linkedData;
+  if (field.linkedDataMap && typeof field.linkedDataMap === 'object') {
+    linkedData = field.linkedDataMap;
+  } else {
+    linkedData = parseLinkedData(field.linkedData);
+  }
+  const options = linkedData[parentValue] || [];
+
+  // 更新下拉选项
+  let html = '<option value="">请选择' + escapeHtml(field.label) + '</option>';
+  options.forEach(opt => {
+    html += `<option value="${escapeHtml(opt)}">${escapeHtml(opt)}</option>`;
+  });
+  select.innerHTML = html;
+
+  // 如果有下级字段关联到当前字段，继续级联更新
+  formSchema.fields.forEach(f => {
+    if (f.type === 'dropdown' && f.linkedField === field.id) {
+      updateLinkedDropdownOptions(f);
+    }
+  });
+}
+
+function parseLinkedData(dataStr) {
+  const result = {};
+  if (!dataStr) return result;
+
+  const lines = dataStr.split('\n');
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+
+    // 支持格式: "上级选项: 本选项1,本选项2"（兼容全角半角冒号和逗号）
+    const colonMatch = trimmed.match(/^([^:：]+)[:：](.+)$/);
+    if (colonMatch) {
+      const key = colonMatch[1].trim();
+      const valueStr = colonMatch[2].trim();
+      const values = valueStr.split(/[,，]/).map(s => s.trim()).filter(s => s);
+      result[key] = values;
+    }
+  });
+
+  return result;
+}
+
+// 添加子表单记录
+function addSubformRecord(fieldId) {
+  const field = formSchema.fields.find(f => f.id === fieldId);
+  if (!field || field.type !== 'subform') return;
+
+  subformCounter++;
+  const instanceId = fieldId + '_' + subformCounter;
+  const container = document.getElementById('subform_' + fieldId + '_container');
+  const idx = container.children.length + 1;
+
+  let bodyHtml = '';
+  (field.children || []).forEach((sub) => {
+    const subId = instanceId + '_' + sub.id;
+    const reqMark = sub.required ? '<span class="required">*</span> ' : '';
+    const ph = sub.placeholder || '';
+
+    switch (sub.type) {
+      case 'text':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <input class="form-input" id="${subId}" placeholder="${escapeHtml(ph)}" autocomplete="off">
+        </div>`;
+        break;
+      case 'textarea':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <textarea class="form-textarea" id="${subId}" placeholder="${escapeHtml(ph)}"></textarea>
+        </div>`;
+        break;
+      case 'number':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <input class="form-input" id="${subId}" type="number" placeholder="${escapeHtml(ph)}">
+        </div>`;
+        break;
+      case 'date':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <input class="form-input" id="${subId}" type="date">
+        </div>`;
+        break;
+      case 'dropdown':
+        const opts = (sub.options || []).map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <select class="form-select" id="${subId}"><option value="">请选择</option>${opts}</select>
+        </div>`;
+        break;
+      case 'radio':
+        const rOpts = (sub.options || []).map((o, i) =>
+          `<label class="option-item"><input type="radio" name="${subId}" value="${escapeHtml(o)}">${escapeHtml(o)}</label>`
+        ).join('');
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <div class="option-group">${rOpts}</div>
+        </div>`;
+        break;
+      case 'checkbox':
+        const cOpts = (sub.options || []).map((o, i) =>
+          `<label class="option-item"><input type="checkbox" name="${subId}" value="${escapeHtml(o)}">${escapeHtml(o)}</label>`
+        ).join('');
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <div class="option-group">${cOpts}</div>
+        </div>`;
+        break;
+      case 'photo':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <div class="photo-upload-zone" id="pzone_${subId}">
+            <span class="camera-icon">📷</span>
+            <span class="upload-text">点击拍照 / 选择图片</span>
+            <input type="file" accept="image/*" capture="environment" multiple onchange="handleDynamicPhotos('${subId}', this)">
+          </div>
+          <div class="photo-grid" id="pgrid_${subId}"></div>
+        </div>`;
+        break;
+      case 'location':
+        bodyHtml += `<div class="form-group">
+          <label class="form-label">${reqMark}${escapeHtml(sub.label)}</label>
+          <div class="location-row">
+            <input class="form-input" id="${subId}" placeholder="点击右侧按钮获取定位" readonly>
+            <button class="btn-location" id="locbtn_${subId}" onclick="getDynamicLocation('${subId}')">📍 获取定位</button>
+          </div>
+          <div class="location-success" id="locsuccess_${subId}">
+            ✅ 定位成功
+            <a id="locmap_${subId}" href="#" target="_blank" style="margin-left:8px;">在地图查看</a>
+          </div>
+        </div>`;
+        break;
+    }
+  });
+
+  const div = document.createElement('div');
+  div.className = 'subform-card';
+  div.id = 'sfcard_' + instanceId;
+  div.innerHTML = `
+    <div class="subform-header">
+      <span class="subform-title">${TYPE_ICONS.subform} 第 ${idx} 条${escapeHtml(field.label)}</span>
+      <div class="subform-actions">
+        <button class="btn-remove-subform" onclick="removeSubformRecord('${instanceId}', '${fieldId}')" title="删除">✕</button>
+      </div>
+    </div>
+    <div class="subform-body">${bodyHtml}</div>
+  `;
+  container.appendChild(div);
+}
+
+function removeSubformRecord(instanceId, fieldId) {
+  const el = document.getElementById('sfcard_' + instanceId);
+  if (el) {
+    // 清理照片
+    const photoKeyPrefix = instanceId;
+    Object.keys(photoStore).forEach(key => {
+      if (key.startsWith(photoKeyPrefix)) {
+        (photoStore[key] || []).forEach(p => { if (p.url) URL.revokeObjectURL(p.url); });
+        delete photoStore[key];
+      }
+    });
+    el.remove();
+    renumberSubformRecords(fieldId);
+  }
+}
+
+function renumberSubformRecords(fieldId) {
+  const container = document.getElementById('subform_' + fieldId + '_container');
+  if (!container) return;
+  const field = formSchema.fields.find(f => f.id === fieldId);
+  const label = field ? field.label : '记录';
+  const cards = container.querySelectorAll('.subform-card');
+  cards.forEach((card, i) => {
+    const title = card.querySelector('.subform-title');
+    if (title) title.textContent = TYPE_ICONS.subform + ' 第 ' + (i + 1) + ' 条' + label;
+  });
+}
+
+// ==================== 级联下拉初始化 ====================
+function initCascadingField(field) {
+  const groupId = field.id + '_group';
+  const groupEl = document.getElementById(groupId);
+  if (!groupEl || !field.cascadingData) return;
+
+  const levels = field.cascadingLabels && field.cascadingLabels.length > 0 
+    ? field.cascadingLabels 
+    : getCascadingDefaultLabels(field.cascadingData);
+  groupEl.innerHTML = '';
+  levels.forEach((level, i) => {
+    const select = document.createElement('select');
+    select.className = 'form-select';
+    select.id = field.id + '_level' + i;
+    select.innerHTML = `<option value="">请选择${level}</option>`;
+    if (i > 0) select.disabled = true;
+    select.addEventListener('change', function() { onCascadingChange(field, i); });
+    groupEl.appendChild(select);
+  });
+
+  // 填充第一级
+  const firstSelect = document.getElementById(field.id + '_level0');
+  const keys = Object.keys(field.cascadingData);
+  keys.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k; opt.textContent = k;
+    firstSelect.appendChild(opt);
+  });
+}
+
+function getCascadingDefaultLabels(data) {
+  const labels = ['一级选项'];
+  const firstKey = Object.keys(data)[0];
+  if (firstKey && typeof data[firstKey] === 'object' && !Array.isArray(data[firstKey])) {
+    labels.push('二级选项');
+    const secondKey = Object.keys(data[firstKey])[0];
+    if (secondKey && Array.isArray(data[firstKey][secondKey])) {
+      labels.push('三级选项');
+    }
+  }
+  return labels;
+}
+
+function getCascadingLevels(data) {
+  const levels = [];
+  const sample = data;
+  levels.push('一级选项');
+  const firstKey = Object.keys(sample)[0];
+  if (firstKey && typeof sample[firstKey] === 'object' && !Array.isArray(sample[firstKey])) {
+    levels.push('二级选项');
+    const secondKey = Object.keys(sample[firstKey])[0];
+    if (secondKey && Array.isArray(sample[firstKey][secondKey])) {
+      levels.push('三级选项');
+    }
+  }
+  return levels;
+}
+
+function onCascadingChange(field, changedLevel) {
+  const data = field.cascadingData;
+  const levels = field.cascadingLabels && field.cascadingLabels.length > 0 
+    ? field.cascadingLabels 
+    : getCascadingDefaultLabels(data);
+  const totalLevels = levels.length;
+
+  // Get selected values up to changedLevel
+  const vals = [];
+  for (let i = 0; i <= changedLevel; i++) {
+    const sel = document.getElementById(field.id + '_level' + i);
+    vals.push(sel ? sel.value : '');
+  }
+
+  // Clear and repopulate subsequent levels
+  for (let i = changedLevel + 1; i < totalLevels; i++) {
+    const sel = document.getElementById(field.id + '_level' + i);
+    if (!sel) continue;
+    sel.innerHTML = `<option value="">请选择${levels[i]}</option>`;
+    sel.disabled = true;
+  }
+
+  if (!vals[changedLevel]) return;
+
+  // Populate next level
+  if (changedLevel === 0 && totalLevels > 1) {
+    const nextSel = document.getElementById(field.id + '_level1');
+    if (nextSel && data[vals[0]]) {
+      const keys = Object.keys(data[vals[0]]);
+      keys.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = k;
+        nextSel.appendChild(opt);
+      });
+      nextSel.disabled = false;
+    }
+  } else if (changedLevel === 1 && totalLevels > 2) {
+    const nextSel = document.getElementById(field.id + '_level2');
+    if (nextSel && data[vals[0]] && data[vals[0]][vals[1]]) {
+      const items = data[vals[0]][vals[1]];
+      items.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = k;
+        nextSel.appendChild(opt);
+      });
+      nextSel.disabled = false;
+    }
+  }
+}
+
+// ==================== GPS定位（动态） ====================
+let _cachedLocation = null; // 缓存定位结果 {lat, lng, time}
+const CACHE_MAX_AGE = 10 * 60 * 1000; // 缓存有效期10分钟
+
+function getDynamicLocation(fieldId) {
+  const btn = document.getElementById('locbtn_' + fieldId);
+  const input = document.getElementById(fieldId);
+  const successDiv = document.getElementById('locsuccess_' + fieldId);
+  const mapLink = document.getElementById('locmap_' + fieldId);
+
+  if (!navigator.geolocation) { showToast('浏览器不支持定位功能', true); return; }
+
+  // 如果有缓存且未过期，直接填充
+  if (_cachedLocation && (Date.now() - _cachedLocation.time < CACHE_MAX_AGE)) {
+    const lat = _cachedLocation.lat;
+    const lng = _cachedLocation.lng;
+    input.value = lat + ',' + lng;
+    if (successDiv) successDiv.classList.add('show');
+    if (mapLink) mapLink.href = 'https://uri.amap.com/marker?position=' + lng + ',' + lat + '&name=当前位置';
+    btn.innerHTML = '📍 已填充(缓存)';
+    setTimeout(() => { btn.innerHTML = '📍 重新定位'; }, 1500);
+    return;
+  }
+
+  btn.classList.add('loading');
+  btn.innerHTML = '⏳ 定位中...';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      // 缓存定位结果
+      _cachedLocation = { lat, lng, time: Date.now() };
+      input.value = lat + ',' + lng;
+      if (successDiv) successDiv.classList.add('show');
+      if (mapLink) mapLink.href = 'https://uri.amap.com/marker?position=' + lng + ',' + lat + '&name=当前位置';
+      btn.classList.remove('loading');
+      btn.innerHTML = '📍 已定位(将缓存10分钟)';
+      setTimeout(() => { btn.innerHTML = '📍 重新定位'; }, 2000);
+    },
+    (err) => {
+      let msg = '定位失败';
+      if (err.code === 1) msg = '用户拒绝了定位请求，请在浏览器设置中允许位置权限';
+      else if (err.code === 2) msg = '无法获取位置信息，请检查GPS是否开启';
+      else if (err.code === 3) msg = '定位超时，请重试';
+      showToast(msg, true);
+      btn.classList.remove('loading');
+      btn.innerHTML = '📍 获取定位';
+    },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+  );
+}
+
+// ==================== 照片水印 ====================
+function addWatermarkToBlob(blob, locationText, timeText, label) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      ctx.drawImage(img, 0, 0);
+
+      const barHeight = Math.max(50, canvas.height * 0.08);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+      ctx.fillRect(0, canvas.height - barHeight, canvas.width, barHeight);
+
+      const fontSize = Math.max(14, canvas.width * 0.025);
+      ctx.font = fontSize + 'px sans-serif';
+      ctx.fillStyle = '#ffffff';
+
+      const line1 = '📍 ' + (locationText || '未定位');
+      const line2 = '🕐 ' + timeText;
+      const line3 = label ? '🏠 ' + label : '';
+
+      const textY1 = canvas.height - barHeight + fontSize + 4;
+      const textY2 = textY1 + fontSize + 4;
+
+      ctx.fillText(line1, 10, textY1);
+      ctx.fillText(line2, 10, textY2);
+
+      if (line3) {
+        const line3Width = ctx.measureText(line3).width;
+        ctx.fillText(line3, canvas.width - line3Width - 10, textY1);
+      }
+
+      canvas.toBlob((watermarkedBlob) => {
+        URL.revokeObjectURL(url);
+        resolve(watermarkedBlob);
+      }, 'image/jpeg', 0.92);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(blob); };
+    img.src = url;
+  });
+}
+
+function compressImage(file) {
+  return new Promise((resolve) => {
+    const MAX_SIZE = 2 * 1024 * 1024;
+    if (file.size <= MAX_SIZE) { resolve(file); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width, height = img.height;
+        const MAX_DIM = 2048;
+        if (width > MAX_DIM || height > MAX_DIM) {
+          const ratio = Math.min(MAX_DIM / width, MAX_DIM / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        let quality = 0.8;
+        const tryCompress = () => {
+          canvas.toBlob((blob) => {
+            if (blob.size <= MAX_SIZE || quality < 0.2) { resolve(blob); }
+            else { quality -= 0.15; tryCompress(); }
+          }, 'image/jpeg', quality);
+        };
+        tryCompress();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ==================== 动态照片处理 ====================
+function handleDynamicPhotos(fieldId, fileInput) {
+  const files = fileInput.files;
+  if (!files || files.length === 0) return;
+  if (!photoStore[fieldId]) photoStore[fieldId] = [];
+
+  // 获取所在位置信息用于水印
+  let locationText = '';
+  const locInput = document.getElementById(fieldId);
+  if (locInput && locInput.value) locationText = locInput.value;
+
+  const captureTime = new Date().toLocaleString('zh-CN', { hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/\//g, '-');
+
+  Array.from(files).forEach((file, idx) => {
+    compressImage(file).then((compressedBlob) => {
+      return addWatermarkToBlob(compressedBlob, locationText, captureTime, '');
+    }).then((watermarkedBlob) => {
+      const name = 'photo_' + Date.now() + '_' + idx + '.jpg';
+      const url = URL.createObjectURL(watermarkedBlob);
+      photoStore[fieldId].push({
+        name, blob: watermarkedBlob, url, capture_time: captureTime
+      });
+      renderDynamicPhotoGrid(fieldId);
+    });
+  });
+  fileInput.value = '';
+}
+
+function renderDynamicPhotoGrid(fieldId) {
+  const grid = document.getElementById('pgrid_' + fieldId);
+  if (!grid) return;
+  const photos = photoStore[fieldId] || [];
+  grid.innerHTML = photos.map((p, i) => `
+    <div class="photo-item">
+      <img src="${p.url}" alt="照片${i + 1}">
+      <span class="watermark-badge">水印</span>
+      <button class="btn-delete-photo" onclick="deleteDynamicPhoto('${fieldId}', ${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+function deleteDynamicPhoto(fieldId, index) {
+  if (photoStore[fieldId]) {
+    const removed = photoStore[fieldId].splice(index, 1);
+    if (removed[0] && removed[0].url) URL.revokeObjectURL(removed[0].url);
+    renderDynamicPhotoGrid(fieldId);
+  }
+}
+
+// ==================== 收集表单数据 ====================
+function collectFieldData(field, prefix) {
+  prefix = prefix || '';
+  const id = prefix + field.id;
+
+  switch (field.type) {
+    case 'text':
+    case 'textarea':
+    case 'number':
+    case 'date':
+    case 'location': {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+    case 'dropdown': {
+      const el = document.getElementById(id);
+      return el ? el.value : '';
+    }
+    case 'cascading': {
+      // Collect all level values, join with separator
+      const levels = field.cascadingData ? getCascadingLevels(field.cascadingData) : [];
+      const parts = [];
+      for (let i = 0; i < levels.length; i++) {
+        const sel = document.getElementById(id + '_level' + i);
+        if (sel && sel.value) parts.push(sel.value);
+        else break;
+      }
+      return parts.join(' / ');
+    }
+    case 'radio': {
+      const radios = document.querySelectorAll('input[name="' + id + '"]');
+      for (const r of radios) { if (r.checked) return r.value; }
+      return '';
+    }
+    case 'checkbox': {
+      const checks = document.querySelectorAll('input[name="' + id + '"]:checked');
+      return Array.from(checks).map(c => c.value);
+    }
+    case 'photo': {
+      return (photoStore[id] || []).map(p => ({
+        name: p.name, blob: p.blob, capture_time: p.capture_time || ''
+      }));
+    }
+    case 'subform': {
+      return collectSubformData(field);
+    }
+    default: {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+  }
+}
+
+function collectSubdata(field, prefix) {
+  prefix = prefix || '';
+  const id = prefix + field.id;
+
+  switch (field.type) {
+    case 'text':
+    case 'textarea':
+    case 'number':
+    case 'date':
+    case 'location':
+    case 'dropdown': {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+    case 'radio': {
+      const radios = document.querySelectorAll('input[name="' + id + '"]');
+      for (const r of radios) { if (r.checked) return r.value; }
+      return '';
+    }
+    case 'checkbox': {
+      const checks = document.querySelectorAll('input[name="' + id + '"]:checked');
+      return Array.from(checks).map(c => c.value);
+    }
+    case 'photo': {
+      return (photoStore[id] || []).map(p => ({
+        name: p.name, blob: p.blob, capture_time: p.capture_time || ''
+      }));
+    }
+    default: {
+      const el = document.getElementById(id);
+      return el ? el.value.trim() : '';
+    }
+  }
+}
+
+function collectSubformData(field) {
+  const container = document.getElementById('subform_' + field.id + '_container');
+  if (!container) return [];
+
+  const cards = container.querySelectorAll('.subform-card');
+  const records = [];
+
+  cards.forEach((card) => {
+    const instanceId = card.id.replace('sfcard_', '');
+    const record = {};
+    (field.children || []).forEach((sub) => {
+      record[sub.id] = collectSubdata(sub, instanceId + '_');
+    });
+    records.push(record);
+  });
+
+  return records;
+}
+
+// ==================== 保存记录 ====================
+async function saveRecord() {
+  if (!formSchema.fields || formSchema.fields.length === 0) {
+    showToast('请先在设置中配置表单字段', true);
+    return;
+  }
+
+  // 姓名必填检查
+  if (currentSettings.accessType === 'name') {
+    const fillerName = document.getElementById('fillerName').value.trim();
+    if (!fillerName) { showToast('请输入您的姓名', true); return; }
+  }
+
+  // 验证必填字段 & 收集数据
+  const data = {};
+  let hasError = false;
+
+  for (const field of formSchema.fields) {
+    if (hasError) break;
+    const value = collectFieldData(field, '');
+
+    if (field.required) {
+      if (field.type === 'checkbox') {
+        if (!value || value.length === 0) {
+          showToast('请填写"' + field.label + '"', true);
+          hasError = true; break;
+        }
+      } else if (field.type === 'subform') {
+        if (!value || value.length === 0) {
+          showToast('请至少添加一条"' + field.label + '"', true);
+          hasError = true; break;
+        }
+        // Check required subfields
+        for (const rec of value) {
+          for (const sub of (field.children || [])) {
+            if (sub.required) {
+              const subVal = rec[sub.id];
+              if (sub.type === 'checkbox') {
+                if (!subVal || subVal.length === 0) {
+                  showToast('请填写"' + sub.label + '"', true);
+                  hasError = true; break;
+                }
+              } else if (sub.type === 'photo') {
+                if (!subVal || subVal.length === 0) {
+                  showToast('请上传"' + sub.label + '"', true);
+                  hasError = true; break;
+                }
+              } else if (!subVal && subVal !== 0) {
+                showToast('请填写"' + sub.label + '"', true);
+                hasError = true; break;
+              }
+            }
+          }
+          if (hasError) break;
+        }
+      } else if (field.type === 'photo') {
+        if (!value || value.length === 0) {
+          showToast('请上传"' + field.label + '"', true);
+          hasError = true; break;
+        }
+      } else if (!value && value !== 0) {
+        showToast('请填写"' + field.label + '"', true);
+        hasError = true; break;
+      }
+    }
+
+    data[field.id] = value;
+  }
+
+  if (hasError) return;
+
+  const record = {
+    id: Date.now(),
+    timestamp: new Date().toLocaleString('zh-CN', { hour12: false }),
+    filler_name: (currentSettings.accessType === 'name') ? document.getElementById('fillerName').value.trim() : '',
+    device_id: getDeviceId(),
+    data: data
+  };
+
+  try {
+    await addRecord(record);
+    showToast('保存成功！');
+    document.getElementById('btnNext').classList.add('show');
+    document.getElementById('btnSave').disabled = true;
+    updateRecordCount();
+  } catch (err) {
+    showToast('保存失败: ' + err.message, true);
+  }
+}
+
+function resetForm() {
+  // Clear all photo stores
+  Object.keys(photoStore).forEach(key => {
+    (photoStore[key] || []).forEach(p => { if (p.url) URL.revokeObjectURL(p.url); });
+  });
+  for (const key in photoStore) delete photoStore[key];
+  subformCounter = 0;
+
+  renderDynamicForm();
+  document.getElementById('btnNext').classList.remove('show');
+  document.getElementById('btnSave').disabled = false;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== Toast ====================
+let toastTimer = null;
+function showToast(msg, isError) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show' + (isError ? ' error' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.className = 'toast'; }, 2500);
+}
+
+// ==================== 数据管理面板 ====================
+async function openDataPanel() {
+  document.getElementById('panelOverlay').classList.add('show');
+  document.getElementById('dataPanel').classList.add('show');
+  await renderRecordList();
+}
+
+function closeDataPanel() {
+  document.getElementById('panelOverlay').classList.remove('show');
+  document.getElementById('dataPanel').classList.remove('show');
+}
+
+function getFieldLabel(fieldId) {
+  for (const f of formSchema.fields) {
+    if (f.id === fieldId) return f.label;
+    if (f.type === 'subform' && f.children) {
+      for (const c of f.children) {
+        if (c.id === fieldId) return f.label + ' - ' + c.label;
+      }
+    }
+  }
+  return fieldId;
+}
+
+async function renderRecordList() {
+  const container = document.getElementById('recordList');
+  try {
+    const records = await getAllRecords();
+    if (records.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <div>暂无已保存的记录</div>
+          <div style="font-size:13px;margin-top:4px;">去填写页面开始采集吧</div>
+        </div>`;
+      return;
+    }
+    records.sort((a, b) => b.id - a.id);
+
+    container.innerHTML = records.map((r) => {
+      // 获取主显示名称
+      let displayName = '';
+      if (r.data) {
+        // 新格式：从data中找第一个非空文本值
+        for (const f of formSchema.fields) {
+          if (f.type === 'subform') continue;
+          const val = r.data[f.id];
+          if (val && typeof val === 'string') { displayName = val; break; }
+        }
+      } else {
+        // 兼容旧格式
+        displayName = r.community_name || r.street || '';
+      }
+
+      const timestamp = r.timestamp || '';
+      const fillerName = r.filler_name || '';
+
+      let detailHtml = '';
+      if (r.data) {
+        // 新格式
+        for (const f of formSchema.fields) {
+          const val = r.data[f.id];
+          if (val === undefined || val === null) continue;
+
+          if (f.type === 'subform') {
+            // 子表单
+            if (Array.isArray(val) && val.length > 0) {
+              val.forEach((rec, ri) => {
+                detailHtml += `<div class="building-detail"><div class="bd-title">${escapeHtml(f.label)} #${ri + 1}</div>`;
+                (f.children || []).forEach(sub => {
+                  const subVal = rec[sub.id];
+                  if (subVal === undefined || subVal === null) return;
+                  if (sub.type === 'photo' && Array.isArray(subVal)) {
+                    let photoHtml = '<div class="bd-photos">';
+                    subVal.forEach(p => {
+                      if (p.blob instanceof Blob) {
+                        const url = URL.createObjectURL(p.blob);
+                        photoHtml += '<img src="' + url + '" alt="照片" onload="URL.revokeObjectURL(this.src)">';
+                      } else if (p.data) {
+                        photoHtml += '<img src="data:image/jpeg;base64,' + p.data + '" alt="照片">';
+                      }
+                    });
+                    photoHtml += '</div>';
+                    detailHtml += `<div class="bd-row">📷 ${escapeHtml(sub.label)}：${subVal.length}张</div>${photoHtml}`;
+                  } else if (Array.isArray(subVal)) {
+                    detailHtml += `<div class="bd-row">${escapeHtml(sub.label)}：${escapeHtml(subVal.join(', '))}</div>`;
+                  } else {
+                    detailHtml += `<div class="bd-row">${escapeHtml(sub.label)}：${escapeHtml(String(subVal))}</div>`;
+                  }
+                });
+                detailHtml += '</div>';
+              });
+            }
+          } else if (f.type === 'photo' && Array.isArray(val)) {
+            let photoHtml = '<div class="bd-photos">';
+            val.forEach(p => {
+              if (p.blob instanceof Blob) {
+                const url = URL.createObjectURL(p.blob);
+                photoHtml += '<img src="' + url + '" alt="照片" onload="URL.revokeObjectURL(this.src)">';
+              } else if (p.data) {
+                photoHtml += '<img src="data:image/jpeg;base64,' + p.data + '" alt="照片">';
+              }
+            });
+            photoHtml += '</div>';
+            detailHtml += `<div class="detail-row"><span class="detail-label">${escapeHtml(f.label)}</span><span class="detail-value">${val.length}张照片</span></div>${photoHtml}`;
+          } else if (Array.isArray(val)) {
+            detailHtml += `<div class="detail-row"><span class="detail-label">${escapeHtml(f.label)}</span><span class="detail-value">${escapeHtml(val.join(', '))}</span></div>`;
+          } else {
+            detailHtml += `<div class="detail-row"><span class="detail-label">${escapeHtml(f.label)}</span><span class="detail-value">${escapeHtml(String(val))}</span></div>`;
+          }
+        }
+      } else {
+        // 兼容旧格式
+        detailHtml += `<div class="detail-row"><span class="detail-label">街道</span><span class="detail-value">${escapeHtml(r.street)}</span></div>`;
+        detailHtml += `<div class="detail-row"><span class="detail-label">社区</span><span class="detail-value">${escapeHtml(r.community)}</span></div>`;
+        detailHtml += `<div class="detail-row"><span class="detail-label">小区</span><span class="detail-value">${escapeHtml(r.community_name)}</span></div>`;
+        detailHtml += `<div class="detail-row"><span class="detail-label">住房类型</span><span class="detail-value">${escapeHtml(r.housing_type)}</span></div>`;
+        if (r.buildings) {
+          r.buildings.forEach(b => {
+            let photoHtml = '';
+            if (b.photos && b.photos.length > 0) {
+              photoHtml = '<div class="bd-photos">';
+              b.photos.forEach(p => {
+                if (p.blob instanceof Blob) {
+                  const url = URL.createObjectURL(p.blob);
+                  photoHtml += '<img src="' + url + '" alt="照片" onload="URL.revokeObjectURL(this.src)">';
+                } else if (p.data) {
+                  photoHtml += '<img src="data:image/jpeg;base64,' + p.data + '" alt="照片">';
+                }
+              });
+              photoHtml += '</div>';
+            }
+            detailHtml += `<div class="building-detail">
+              <div class="bd-title">${escapeHtml(b.building_no)}</div>
+              <div class="bd-row">📍 经纬度：${b.location || '未定位'}</div>
+              <div class="bd-row">📷 照片：${b.photos ? b.photos.length : 0}张</div>
+              ${photoHtml}
+            </div>`;
+          });
+        }
+      }
+
+      detailHtml += `<div class="detail-row"><span class="detail-label">提交时间</span><span class="detail-value">${timestamp}</span></div>`;
+      if (fillerName) {
+        detailHtml += `<div class="detail-row"><span class="detail-label">填写人</span><span class="detail-value">${escapeHtml(fillerName)}</span></div>`;
+      }
+
+      return `
+        <div class="record-item" id="ri-${r.id}">
+          <div class="record-header" onclick="toggleRecord(${r.id})">
+            <div class="record-info">
+              <div class="record-name">${escapeHtml(displayName || '记录')}</div>
+              <div class="record-meta">${timestamp}${fillerName ? ' · ' + escapeHtml(fillerName) : ''}</div>
+            </div>
+            <button class="btn-delete-record" onclick="event.stopPropagation(); confirmDelete(${r.id})">🗑</button>
+          </div>
+          <div class="record-detail">${detailHtml}</div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    container.innerHTML = '<div class="empty-state"><div>加载失败: ' + err.message + '</div></div>';
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeJsString(str) {
+  if (!str) return '';
+  return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+}
+
+function toggleRecord(id) {
+  const item = document.getElementById('ri-' + id);
+  if (item) item.classList.toggle('expanded');
+}
+
+async function confirmDelete(id) {
+  if (confirm('确定要删除这条记录吗？删除后不可恢复。')) {
+    try {
+      await deleteRecord(id);
+      showToast('已删除');
+      await renderRecordList();
+      updateRecordCount();
+    } catch (err) { showToast('删除失败: ' + err.message, true); }
+  }
+}
+
+// ==================== 照片命名辅助函数 ====================
+function getPhotoNamingContext(record) {
+  let xiaoquName = '';
+  // 1. 先检查 cascading 类型字段（兼容旧版）
+  const cascField = formSchema.fields.find(f => f.type === 'cascading');
+  if (cascField && record.data) {
+    const cascVal = record.data[cascField.id];
+    if (cascVal && typeof cascVal === 'string') {
+      const parts = cascVal.split(' / ');
+      xiaoquName = parts[parts.length - 1] || parts[0] || '';
+    }
+  }
+  // 2. 如果没有cascading字段或值为空，从dropdown/text字段中查找
+  if (!xiaoquName) {
+    for (const f of formSchema.fields) {
+      if ((f.type === 'dropdown' || f.type === 'text') && record.data) {
+        const label = f.label || '';
+        if (label.includes('社区') || label.includes('小区') || label.includes('村') || label.includes('街道') || label.includes('乡镇')) {
+          const val = record.data[f.id];
+          if (val && typeof val === 'string' && val.trim()) {
+            xiaoquName = val.trim();
+            break;
+          }
+        }
+      }
+    }
+  }
+  // 3. 查找子表单中的楼栋/楼号字段
+  let louhao = '';
+  const subformField = formSchema.fields.find(f => f.type === 'subform');
+  if (subformField && subformField.children) {
+    const louhaoChild = subformField.children.find(c => 
+      c.label && (c.label.includes('楼号') || c.label.includes('编号') || c.label.includes('楼栋'))
+    );
+    if (louhaoChild) louhao = louhaoChild.id;
+  }
+  return { xiaoqu: xiaoquName, louhaoFieldId: louhao };
+}
+
+function getLouhaoFromSubRecord(rec, louhaoFieldId) {
+  if (!louhaoFieldId || !rec) return '';
+  return rec[louhaoFieldId] || '';
+}
+
+function buildPhotoFileName(p, index, contextInfo) {
+  if (contextInfo.xiaoqu) {
+    return contextInfo.xiaoqu + (contextInfo.louhao ? '_' + contextInfo.louhao : '') + '_' + (index + 1) + '.jpg';
+  }
+  return p.name || ('photo_' + (index + 1) + '.jpg');
+}
+
+// ==================== 一键导出全部（Excel+照片打包ZIP） ====================
+async function exportAll() {
+  try {
+    const records = await getAllRecords();
+    if (records.length === 0) { showToast('暂无数据可导出', true); return; }
+
+    showToast('正在准备导出数据和照片...');
+    const formName = currentSettings.formName || '调研数据';
+
+    // 先生成Excel
+    const columns = [];
+    const subformFields = [];
+    // 填写人和填写时间放最前面
+    columns.push({ id: '__filler_name', label: '填写人' });
+    columns.push({ id: '__timestamp', label: '提交时间' });
+    formSchema.fields.forEach(f => {
+      if (f.type === 'subform') {
+        subformFields.push(f);
+      } else if (f.type === 'cascading') {
+        const cascLabels = f.cascadingLabels && f.cascadingLabels.length > 0
+          ? f.cascadingLabels : getCascadingDefaultLabels(f.cascadingData);
+        cascLabels.forEach((label, i) => {
+          columns.push({ id: f.id + '_level' + i, label: label, field: f });
+        });
+      } else {
+        columns.push({ id: f.id, label: f.label, field: f });
+      }
+    });
+    subformFields.forEach(sf => {
+      (sf.children || []).forEach(sub => {
+        columns.push({ id: sf.id + '_' + sub.id, label: sf.label + '-' + sub.label, field: sub, parentField: sf });
+      });
+    });
+
+    const allRows = [];
+    records.forEach(r => {
+      if (!r.data) return;
+      const hasSubform = subformFields.some(sf => r.data[sf.id] && Array.isArray(r.data[sf.id]) && r.data[sf.id].length > 0);
+      if (!hasSubform) {
+        const row = {};
+        columns.forEach(col => {
+          if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+          if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+          if (col.parentField) { row[col.label] = ''; }
+          else if (col.field.type === 'cascading') {
+            const levelIdx = parseInt(col.id.split('_level')[1]);
+            const cascVal = r.data[col.field.id];
+            row[col.label] = (cascVal && typeof cascVal === 'string') ? (cascVal.split(' / ')[levelIdx] || '') : '';
+          } else { row[col.label] = formatCellValue(r.data[col.id]); }
+        });
+        allRows.push(row);
+      } else {
+        subformFields.forEach(sf => {
+          const subRecords = r.data[sf.id] || [];
+          if (subRecords.length === 0) {
+            const row = {};
+            columns.forEach(col => {
+              if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+              if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+              if (col.parentField) { row[col.label] = ''; }
+              else if (col.field.type === 'cascading') {
+                const levelIdx = parseInt(col.id.split('_level')[1]);
+                const cascVal = r.data[col.field.id];
+                row[col.label] = (cascVal && typeof cascVal === 'string') ? (cascVal.split(' / ')[levelIdx] || '') : '';
+              } else { row[col.label] = formatCellValue(r.data[col.id]); }
+            });
+            allRows.push(row);
+          } else {
+            subRecords.forEach(subRec => {
+              const row = {};
+              columns.forEach(col => {
+                if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+                if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+                if (col.parentField && col.parentField.id === sf.id) {
+                  row[col.label] = formatCellValue(subRec[col.field.id]);
+                } else if (col.parentField) { row[col.label] = ''; }
+                else if (col.field.type === 'cascading') {
+                  const levelIdx = parseInt(col.id.split('_level')[1]);
+                  const cascVal = r.data[col.field.id];
+                  row[col.label] = (cascVal && typeof cascVal === 'string') ? (cascVal.split(' / ')[levelIdx] || '') : '';
+                } else {
+                  row[col.label] = formatCellValue(r.data[col.id]);
+                }
+              });
+              allRows.push(row);
+            });
+          }
+        });
+      }
+    });
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows), '调研数据');
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+
+    // 创建ZIP
+    const zip = new JSZip();
+    zip.file(formName + '.xlsx', excelBuffer);
+    const photoFolder = zip.folder('照片');
+    let hasAnyPhoto = false;
+
+    // 照片处理（使用统一命名逻辑）
+    function addPhotoToZipAll(p, folder, index, contextInfo) {
+      if (!p) return false;
+      const hasBlob = p.blob && (p.blob instanceof Blob || (typeof p.blob === 'object' && p.blob.size !== undefined));
+      const hasData = p.data && typeof p.data === 'string' && p.data.length > 100;
+      if (hasBlob || hasData) {
+        const fileName = buildPhotoFileName(p, index, contextInfo);
+        if (hasBlob) { folder.file(fileName, p.blob); }
+        else { const binary = atob(p.data); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); folder.file(fileName, bytes); }
+        return true;
+      }
+      return false;
+    }
+
+    const allSubformFields = formSchema.fields.filter(f => f.type === 'subform');
+
+    for (const r of records) {
+      if (!r.data) continue;
+      const ctx = getPhotoNamingContext(r);
+      // 1. 普通照片字段（非子表单内的）
+      for (const f of formSchema.fields) {
+        if (f.type === 'subform') continue;
+        const val = r.data[f.id];
+        if (f.type === 'photo' && Array.isArray(val) && val.length > 0) {
+          const pf = photoFolder.folder(f.label);
+          val.forEach((p, i) => { if (addPhotoToZipAll(p, pf, i, { xiaoqu: ctx.xiaoqu, louhao: '' })) hasAnyPhoto = true; });
+        }
+      }
+      // 2. 所有子表单中的照片
+      allSubformFields.forEach(sf => {
+        const subRecords = r.data[sf.id];
+        if (Array.isArray(subRecords)) {
+          const spf = photoFolder.folder(sf.label);
+          subRecords.forEach((rec, ri) => {
+            const louhao = getLouhaoFromSubRecord(rec, ctx.louhaoFieldId);
+            (sf.children || []).forEach(sub => {
+              if (sub.type === 'photo' && Array.isArray(rec[sub.id]) && rec[sub.id].length > 0) {
+                rec[sub.id].forEach((p, pi) => { if (addPhotoToZipAll(p, spf, pi, { xiaoqu: ctx.xiaoqu, louhao: louhao })) hasAnyPhoto = true; });
+              }
+            });
+          });
+        }
+      });
+    }
+
+    showToast('正在打包，请稍候...');
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = formName + '_' + new Date().toISOString().slice(0, 10) + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('导出成功！' + (hasAnyPhoto ? '（含Excel+' + '照片）' : '（含Excel）'));
+  } catch (err) { showToast('导出失败: ' + err.message, true); }
+}
+
+// ==================== 导出Excel ====================
+async function exportExcel() {
+  try {
+    const records = await getAllRecords();
+    if (records.length === 0) { showToast('暂无数据可导出', true); return; }
+
+    // 构建列头：所有字段平铺，级联下拉各级独立，子表单子字段独立
+    const columns = [];
+    const subformFields = [];
+
+    // 填写人和提交时间放最前面
+    columns.push({ id: '__filler_name', label: '填写人' });
+    columns.push({ id: '__timestamp', label: '提交时间' });
+
+    formSchema.fields.forEach(f => {
+      if (f.type === 'subform') {
+        subformFields.push(f);
+      } else if (f.type === 'cascading') {
+        // 级联下拉：每个级别独立成列，使用自定义标签
+        const cascLabels = f.cascadingLabels && f.cascadingLabels.length > 0
+          ? f.cascadingLabels
+          : getCascadingDefaultLabels(f.cascadingData);
+        cascLabels.forEach((label, i) => {
+          columns.push({ id: f.id + '_level' + i, label: label, field: f });
+        });
+      } else {
+        columns.push({ id: f.id, label: f.label, field: f });
+      }
+    });
+
+    // 添加子表单子字段列（加子表单名前缀区分多个子表单）
+    subformFields.forEach(sf => {
+      (sf.children || []).forEach(sub => {
+        columns.push({ id: sf.id + '_' + sub.id, label: sf.label + '-' + sub.label, field: sub, parentField: sf });
+      });
+    });
+
+    // 构建数据行：子表单多条记录展开为多行
+    const allRows = [];
+
+    records.forEach(r => {
+      if (!r.data) return;
+
+      // 检查是否有子表单记录
+      const hasSubform = subformFields.some(sf => r.data[sf.id] && Array.isArray(r.data[sf.id]) && r.data[sf.id].length > 0);
+
+      if (!hasSubform) {
+        // 无子表单或子表单为空：单行
+        const row = {};
+        columns.forEach(col => {
+          if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+          if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+
+          if (col.parentField) {
+            // 子表单子字段，无记录时留空
+            row[col.label] = '';
+          } else if (col.field.type === 'cascading') {
+            // 级联下拉：从data中解析各级值
+            const levelIdx = parseInt(col.id.split('_level')[1]);
+            const cascVal = r.data[col.field.id];
+            if (cascVal && typeof cascVal === 'string') {
+              const parts = cascVal.split(' / ');
+              row[col.label] = parts[levelIdx] || '';
+            } else {
+              row[col.label] = '';
+            }
+          } else {
+            const val = r.data[col.id];
+            row[col.label] = formatCellValue(val);
+          }
+        });
+        allRows.push(row);
+      } else {
+        // 有子表单记录：展开为多行
+        subformFields.forEach(sf => {
+          const subRecords = r.data[sf.id] || [];
+          if (subRecords.length === 0) {
+            // 子表单为空时仍保留一行
+            const row = {};
+            columns.forEach(col => {
+              if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+              if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+              if (col.parentField && col.parentField.id === sf.id) {
+                row[col.label] = '';
+              } else if (col.parentField) {
+                row[col.label] = '';
+              } else if (col.field.type === 'cascading') {
+                const levelIdx = parseInt(col.id.split('_level')[1]);
+                const cascVal = r.data[col.field.id];
+                if (cascVal && typeof cascVal === 'string') {
+                  const parts = cascVal.split(' / ');
+                  row[col.label] = parts[levelIdx] || '';
+                } else {
+                  row[col.label] = '';
+                }
+              } else {
+                const val = r.data[col.id];
+                row[col.label] = formatCellValue(val);
+              }
+            });
+            allRows.push(row);
+          } else {
+            subRecords.forEach(subRec => {
+              const row = {};
+              columns.forEach(col => {
+                if (col.id === '__timestamp') { row[col.label] = r.timestamp || ''; return; }
+                if (col.id === '__filler_name') { row[col.label] = r.filler_name || ''; return; }
+
+                if (col.parentField && col.parentField.id === sf.id) {
+                  // 当前子表单的子字段
+                  const val = subRec[col.field.id];
+                  row[col.label] = formatCellValue(val);
+                } else if (col.parentField) {
+                  // 其他子表单的子字段，留空
+                  row[col.label] = '';
+                } else if (col.field.type === 'cascading') {
+                  const levelIdx = parseInt(col.id.split('_level')[1]);
+                  const cascVal = r.data[col.field.id];
+                  if (cascVal && typeof cascVal === 'string') {
+                    const parts = cascVal.split(' / ');
+                    row[col.label] = parts[levelIdx] || '';
+                  } else {
+                    row[col.label] = '';
+                  }
+                } else {
+                  row[col.label] = formatCellValue(r.data[col.id]);
+                }
+              });
+              allRows.push(row);
+            });
+          }
+        });
+      }
+    });
+
+    // 兼容旧格式
+    const hasOldFormat = records.some(r => r.buildings && !r.data);
+    if (hasOldFormat) {
+      const oldMainData = records.filter(r => r.buildings && !r.data).map(r => ({
+        '街道': r.street, '社区': r.community, '小区名称': r.community_name,
+        '住房类型': r.housing_type, '提交时间': r.timestamp
+      }));
+      const oldBuildingData = [];
+      records.filter(r => r.buildings && !r.data).forEach(r => {
+        (r.buildings || []).forEach(b => {
+          const locParts = (b.location || ',').split(',');
+          oldBuildingData.push({
+            '小区名称': r.community_name, '楼号': b.building_no,
+            '纬度': locParts[0] || '', '经度': locParts[1] || '',
+            '经纬度组合': b.location || '',
+            '照片数量': b.photos ? b.photos.length : 0,
+            '照片文件': b.photos ? b.photos.map(p => p.name).join('; ') : '',
+            '拍摄时间': b.photos ? b.photos.map(p => p.capture_time || '').join('; ') : ''
+          });
+        });
+      });
+      if (oldMainData.length > 0) allRows.push(...oldMainData);
+      if (oldBuildingData.length > 0) {
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows), '调研数据');
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(oldBuildingData), '旧楼栋明细');
+        const filename = '调研数据_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+        XLSX.writeFile(wb, filename);
+        showToast('Excel导出成功！');
+        return;
+      }
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(allRows), '调研数据');
+    const filename = '调研数据_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    XLSX.writeFile(wb, filename);
+    showToast('Excel导出成功！');
+  } catch (err) { showToast('导出失败: ' + err.message, true); }
+}
+
+// 格式化单元格值
+function formatCellValue(val) {
+  if (val === null || val === undefined) return '';
+  if (Array.isArray(val)) {
+    // 检查是否是照片对象数组
+    if (val.length > 0 && typeof val[0] === 'object' && val[0] !== null && (val[0].blob || val[0].data || val[0].name)) {
+      return val.length + '张';
+    }
+    return val.join(', ');
+  }
+  if (typeof val === 'object') return JSON.stringify(val);
+  return String(val);
+}
+
+// ==================== 导出照片ZIP ====================
+async function exportPhotos() {
+  try {
+    const records = await getAllRecords();
+    if (records.length === 0) { showToast('暂无数据可导出', true); return; }
+
+    const zip = new JSZip();
+    let hasAnyPhoto = false;
+    const formName = currentSettings.formName || '调研数据';
+    const photoRoot = zip.folder(formName).folder('照片');
+
+    // 辅助函数：添加照片到ZIP（使用统一命名逻辑）
+    function addPhotoToZip(p, folder, index, contextInfo) {
+      if (!p) return false;
+      const hasBlob = p.blob && (p.blob instanceof Blob || (typeof p.blob === 'object' && p.blob.size !== undefined));
+      const hasData = p.data && typeof p.data === 'string' && p.data.length > 100;
+      if (hasBlob || hasData) {
+        const fileName = buildPhotoFileName(p, index, contextInfo);
+        if (hasBlob) { folder.file(fileName, p.blob); }
+        else { const binary = atob(p.data); const bytes = new Uint8Array(binary.length); for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i); folder.file(fileName, bytes); }
+        return true;
+      }
+      return false;
+    }
+
+    const allSubformFields = formSchema.fields.filter(f => f.type === 'subform');
+
+    for (const r of records) {
+      if (!r.data) continue;
+      const ctx = getPhotoNamingContext(r);
+
+      // 1. 普通照片字段（非子表单内的）
+      for (const f of formSchema.fields) {
+        if (f.type === 'subform') continue;
+        const val = r.data[f.id];
+        if (f.type === 'photo' && Array.isArray(val) && val.length > 0) {
+          const photoFolder = photoRoot.folder(f.label);
+          val.forEach((p, i) => {
+            const contextInfo = { xiaoqu: ctx.xiaoqu, louhao: '' };
+            if (addPhotoToZip(p, photoFolder, i, contextInfo)) hasAnyPhoto = true;
+          });
+        }
+      }
+
+      // 2. 所有子表单中的照片
+      allSubformFields.forEach(sf => {
+        const subRecords = r.data[sf.id];
+        if (Array.isArray(subRecords)) {
+          const subPhotoFolder = photoRoot.folder(sf.label);
+          subRecords.forEach((rec, ri) => {
+            const louhao = getLouhaoFromSubRecord(rec, ctx.louhaoFieldId);
+            const contextInfo = { xiaoqu: ctx.xiaoqu, louhao: louhao };
+            (sf.children || []).forEach(sub => {
+              if (sub.type === 'photo' && Array.isArray(rec[sub.id]) && rec[sub.id].length > 0) {
+                rec[sub.id].forEach((p, pi) => {
+                  if (addPhotoToZip(p, subPhotoFolder, pi, contextInfo)) hasAnyPhoto = true;
+                });
+              }
+            });
+          });
+        }
+      });
+    }
+
+    if (!hasAnyPhoto) { showToast('暂无照片可导出', true); return; }
+
+    showToast('正在打包照片，请稍候...');
+    const content = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = formName + '_照片_' + new Date().toISOString().slice(0, 10) + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('照片导出成功！');
+  } catch (err) { showToast('导出失败: ' + err.message, true); }
+}
+
+// ==================== 导出JSON ====================
+function blobToBase64(blob) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function convertPhotosToBase64(val) {
+  if (!val) return val;
+  if (Array.isArray(val)) {
+    const result = [];
+    for (const item of val) {
+      if (item && typeof item === 'object') {
+        if (item.blob instanceof Blob) {
+          result.push({ name: item.name, capture_time: item.capture_time || '', data: await blobToBase64(item.blob) });
+        } else if (item.data) {
+          result.push({ name: item.name, capture_time: item.capture_time || '', data: item.data });
+        } else {
+          result.push(item);
+        }
+      } else if (item && typeof item === 'object' && !Array.isArray(item)) {
+        // Subform record
+        const rec = {};
+        for (const [k, v] of Object.entries(item)) {
+          rec[k] = await convertPhotosToBase64(v);
+        }
+        result.push(rec);
+      } else {
+        result.push(item);
+      }
+    }
+    return result;
+  }
+  if (typeof val === 'object' && val.blob instanceof Blob) {
+    return { name: val.name, capture_time: val.capture_time || '', data: await blobToBase64(val.blob) };
+  }
+  return val;
+}
+
+async function exportJSON() {
+  try {
+    const records = await getAllRecords();
+    if (records.length === 0) { showToast('暂无数据可导出', true); return; }
+
+    showToast('正在准备导出数据...');
+
+    const exportData = [];
+    for (const r of records) {
+      const recordCopy = {
+        id: r.id,
+        timestamp: r.timestamp,
+        filler_name: r.filler_name || '',
+        device_id: r.device_id || '',
+      };
+
+      if (r.data) {
+        // 新格式
+        const dataCopy = {};
+        for (const [k, v] of Object.entries(r.data)) {
+          dataCopy[k] = await convertPhotosToBase64(v);
+        }
+        recordCopy.data = dataCopy;
+      } else {
+        // 旧格式兼容
+        recordCopy.street = r.street || '';
+        recordCopy.community = r.community || '';
+        recordCopy.community_name = r.community_name || '';
+        recordCopy.housing_type = r.housing_type || '';
+        recordCopy.buildings = [];
+        for (const b of (r.buildings || [])) {
+          const buildingCopy = { building_no: b.building_no, location: b.location, photos: [] };
+          for (const p of (b.photos || [])) {
+            const photoCopy = { name: p.name, capture_time: p.capture_time || '', data: '' };
+            if (p.blob instanceof Blob) photoCopy.data = await blobToBase64(p.blob);
+            else if (p.data) photoCopy.data = p.data;
+            buildingCopy.photos.push(photoCopy);
+          }
+          recordCopy.buildings.push(buildingCopy);
+        }
+      }
+
+      exportData.push(recordCopy);
+    }
+
+    const exportObj = {
+      settings: { ...currentSettings },
+      formSchema: formSchema,
+      records: exportData
+    };
+
+    const json = JSON.stringify(exportObj, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const now = new Date();
+    const ts = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '调研数据_导出_' + ts + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('JSON导出成功！');
+  } catch (err) { showToast('导出失败: ' + err.message, true); }
+}
+
+// ==================== 导入JSON ====================
+async function importJSON(files) {
+  if (!files || files.length === 0) return;
+
+  try {
+    const file = files[0];
+    const text = await file.text();
+    let data = JSON.parse(text);
+
+    let importedSettings = null;
+    let importedSchema = null;
+
+    if (data && !Array.isArray(data) && data.records && Array.isArray(data.records)) {
+      importedSettings = data.settings || null;
+      importedSchema = data.formSchema || null;
+      data = data.records;
+    }
+
+    if (!Array.isArray(data)) data = [data];
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const record of data) {
+      // Convert base64 photos to Blobs
+      const convertRecordPhotos = async (rec) => {
+        if (rec.data) {
+          // New format
+          for (const [k, v] of Object.entries(rec.data)) {
+            if (Array.isArray(v)) {
+              for (let i = 0; i < v.length; i++) {
+                if (v[i] && v[i].data && !v[i].blob) {
+                  // Could be a photo or subform record
+                  if (v[i].name !== undefined) {
+                    // Photo
+                    const binary = atob(v[i].data);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+                    v[i].blob = new Blob([bytes], { type: 'image/jpeg' });
+                  } else {
+                    // Subform record - recurse
+                    for (const [sk, sv] of Object.entries(v[i])) {
+                      if (Array.isArray(sv)) {
+                        for (let si = 0; si < sv.length; si++) {
+                          if (sv[si] && sv[si].data && !sv[si].blob && sv[si].name !== undefined) {
+                            const binary = atob(sv[si].data);
+                            const bytes = new Uint8Array(binary.length);
+                            for (let j = 0; j < binary.length; j++) bytes[j] = binary.charCodeAt(j);
+                            sv[si].blob = new Blob([bytes], { type: 'image/jpeg' });
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        // Old format
+        if (record.buildings) {
+          for (const b of (record.buildings || [])) {
+            if (b.photos) {
+              for (const p of b.photos) {
+                if (p.data && !p.blob) {
+                  const binary = atob(p.data);
+                  const bytes = new Uint8Array(binary.length);
+                  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                  p.blob = new Blob([bytes], { type: 'image/jpeg' });
+                }
+              }
+            }
+          }
+        }
+      };
+
+      await convertRecordPhotos(record);
+
+      // Basic validation
+      const hasData = record.data || record.community_name || record.buildings;
+      if (!hasData) { skipped++; continue; }
+
+      // Avoid ID conflict
+      const existingRecords = await getAllRecords();
+      const exists = existingRecords.some(r => r.id === record.id);
+      if (exists) {
+        record.id = Date.now() + Math.floor(Math.random() * 1000);
+      }
+
+      await addRecord(record);
+      imported++;
+    }
+
+    // Restore settings
+    if (importedSettings) {
+      Object.keys(DEFAULT_SETTINGS).forEach(key => {
+        if (importedSettings[key] !== undefined) currentSettings[key] = importedSettings[key];
+      });
+      await saveAllSettings();
+      applySettingsToUI();
+    }
+
+    // Restore formSchema
+    if (importedSchema && importedSchema.fields) {
+      formSchema = importedSchema;
+      await setSetting('formSchema', formSchema);
+      renderDynamicForm();
+    }
+
+    showToast('导入完成！成功 ' + imported + ' 条' + (skipped > 0 ? '，跳过 ' + skipped + ' 条' : ''));
+    await renderRecordList();
+    updateRecordCount();
+  } catch (err) {
+    showToast('导入失败: ' + err.message, true);
+  }
+
+  document.getElementById('importFileInput').value = '';
+}
+
+// ==================== 记录计数 ====================
+async function updateRecordCount() {
+  try {
+    const records = await getAllRecords();
+    document.getElementById('recordCount').textContent = '已保存 ' + records.length + ' 条记录';
+  } catch (e) { /* ignore */ }
+}
+
+// ==================== 设置应用到UI ====================
+function applySettingsToUI() {
+  // GitHub settings
+  document.getElementById('settingGithubToken').value = currentSettings.githubToken || '';
+  document.getElementById('settingGithubRepo').value = currentSettings.githubRepo || '';
+  document.getElementById('headerTitle').textContent = currentSettings.formName || '现场调研采集';
+  document.title = currentSettings.formName || '现场调研采集';
+
+  const descEl = document.getElementById('projectDesc');
+  if (currentSettings.description) {
+    descEl.textContent = currentSettings.description;
+    descEl.classList.add('show');
+  } else {
+    descEl.textContent = '';
+    descEl.classList.remove('show');
+  }
+
+  const nameCard = document.getElementById('nameFieldCard');
+  if (currentSettings.accessType === 'name') nameCard.classList.add('show');
+  else nameCard.classList.remove('show');
+
+  const btnView = document.getElementById('btnViewMySubmit');
+  if (currentSettings.allowModify === 'yes') btnView.classList.add('show');
+  else btnView.classList.remove('show');
+
+  const chainSection = document.getElementById('chainSection');
+  if (currentSettings.chainMode) {
+    chainSection.classList.add('show');
+    loadChainRecords();
+  } else {
+    chainSection.classList.remove('show');
+  }
+}
+
+// ==================== 填写页行为检查 ====================
+function checkFormAccess() {
+  if (currentSettings.deadlineType === 'custom' && currentSettings.deadline) {
+    const deadline = new Date(currentSettings.deadline);
+    if (new Date() > deadline) {
+      document.getElementById('expiredOverlay').classList.add('show');
+      const descEl = document.getElementById('expiredDesc');
+      if (descEl) descEl.textContent = '截止时间：' + currentSettings.deadline.replace('T', ' ');
+      return false;
+    }
+  }
+  if (currentSettings.paused) {
+    document.getElementById('pausedOverlay').classList.add('show');
+    return false;
+  }
+  if (currentSettings.accessType === 'password' && currentSettings.accessPassword) {
+    const verified = sessionStorage.getItem('fc_pw_verified');
+    if (verified !== 'true') {
+      document.getElementById('passwordOverlay').classList.add('show');
+      return false;
+    }
+  }
+  return true;
+}
+
+function verifyPassword() {
+  const input = document.getElementById('pwInput').value;
+  const errorEl = document.getElementById('pwError');
+  if (input === currentSettings.accessPassword) {
+    sessionStorage.setItem('fc_pw_verified', 'true');
+    document.getElementById('passwordOverlay').classList.remove('show');
+    errorEl.style.display = 'none';
+    document.getElementById('pwInput').value = '';
+  } else {
+    errorEl.style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+// ==================== 查看我的提交 ====================
+async function viewMySubmission() {
+  try {
+    const records = await getAllRecords();
+    const deviceId = getDeviceId();
+    const fillerName = document.getElementById('fillerName') ? document.getElementById('fillerName').value.trim() : '';
+    const myRecords = records.filter(r => {
+      if (r.device_id && r.device_id === deviceId) return true;
+      if (fillerName && r.filler_name === fillerName) return true;
+      return false;
+    });
+    if (myRecords.length === 0) { showToast('未找到您的提交记录'); return; }
+    await openDataPanel();
+    const listEl = document.getElementById('recordList');
+    if (listEl && listEl.firstChild) listEl.scrollTop = 0;
+  } catch (err) { showToast('查询失败: ' + err.message, true); }
+}
+
+// ==================== 接龙模式 ====================
+function toggleChainSection() {
+  document.getElementById('chainSection').classList.toggle('expanded');
+}
+
+async function loadChainRecords() {
+  try {
+    const records = await getAllRecords();
+    const chainBody = document.getElementById('chainBody');
+    if (!chainBody) return;
+    const filteredRecords = records.filter(r => r.filler_name);
+    if (filteredRecords.length === 0) {
+      chainBody.innerHTML = '<div style="padding:16px;text-align:center;color:#999;font-size:14px;">暂无其他填写记录</div>';
+      return;
+    }
+    filteredRecords.sort((a, b) => b.id - a.id);
+    chainBody.innerHTML = filteredRecords.map(r => {
+      const name = r.filler_name || '匿名';
+      const time = r.timestamp || '';
+      // 获取一个简短描述
+      let desc = '';
+      if (r.data) {
+        for (const f of formSchema.fields) {
+          if (f.type === 'subform') continue;
+          const val = r.data[f.id];
+          if (val && typeof val === 'string') { desc = val; break; }
+        }
+      } else {
+        desc = r.community_name || '';
+      }
+      return '<div class="chain-item"><span class="chain-name">' + escapeHtml(name) + '</span><span class="chain-meta">' + escapeHtml(desc) + ' · ' + time + '</span></div>';
+    }).join('');
+  } catch (e) { /* ignore */ }
+}
+
+// ==================== Excel导入字段 ====================
+function importFromExcel() {
+  document.getElementById('excelImportInput').click();
+}
+
+async function handleExcelImport(files) {
+  if (!files || !files[0]) return;
+  try {
+    const data = await files[0].arrayBuffer();
+    const wb = XLSX.read(data, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    if (!rows.length || !rows[0]) { showToast('Excel为空', true); return; }
+    const headers = rows[0].map(h => String(h || '').trim()).filter(Boolean);
+    if (!headers.length) { showToast('未找到表头', true); return; }
+    if (formSchema.fields.length > 0) {
+      if (!confirm('导入 ' + headers.length + ' 个字段，追加到现有字段后面？\n点"取消"则覆盖所有字段')) {
+        formSchema.fields = [];
+      }
+    }
+    headers.forEach(name => {
+      formSchema.fields.push({
+        id: generateFieldId(), label: name, type: 'text',
+        required: false, placeholder: ''
+      });
+    });
+    renderFieldList();
+    showToast('已导入 ' + headers.length + ' 个字段：' + headers.slice(0, 5).join('、') + (headers.length > 5 ? '...' : ''));
+  } catch (e) {
+    showToast('导入失败: ' + e.message, true);
+  }
+  document.getElementById('excelImportInput').value = '';
+}
+
+// ==================== GitHub API ====================
+async function ghApi(token, method, url, body) {
+  const opts = {
+    method,
+    headers: {
+      'Authorization': 'token ' + token,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error('GitHub API ' + res.status + ': ' + errText);
+  }
+  return res.json();
+}
+
+async function ghGetFile(token, owner, repo, path) {
+  const data = await ghApi(token, 'GET',
+    'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path);
+  const content = atob(data.content.replace(/\n/g, ''));
+  return JSON.parse(decodeURIComponent(escape(content)));
+}
+
+async function ghPutFile(token, owner, repo, path, content, message, sha) {
+  const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2))));
+  const body = { message, content };
+  if (sha) body.sha = sha;
+  return ghApi(token, 'PUT',
+    'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path, body);
+}
+
+async function ghGetOwner(token) {
+  const user = await ghApi(token, 'GET', 'https://api.github.com/user');
+  return user.login;
+}
+
+async function ghEnsureRepo(token, repoName) {
+  const owner = await ghGetOwner(token);
+  try {
+    await ghApi(token, 'GET', 'https://api.github.com/repos/' + owner + '/' + repoName);
+    return { owner, repo: repoName };
+  } catch (e) {
+    // Repo doesn't exist, create it
+    const created = await ghApi(token, 'POST', 'https://api.github.com/user/repos', {
+      name: repoName, private: true,
+      description: '表单调研数据仓库 - ' + (currentSettings.formName || '现场调研')
+    });
+    // Init with README
+    await ghPutFile(token, owner, repoName, 'README.md',
+      '# ' + (currentSettings.formName || '现场调研') + '\n\n自动创建的表单数据仓库',
+      'Initial commit');
+    return { owner, repo: repoName };
+  }
+}
+
+// ==================== 发布表单到GitHub ====================
+async function publishToGithub() {
+  const token = document.getElementById('settingGithubToken').value.trim();
+  let repoName = document.getElementById('settingGithubRepo').value.trim();
+  if (!token) { showToast('请先填写GitHub Token', true); return; }
+  if (!formSchema.fields || formSchema.fields.length === 0) {
+    showToast('请先设计表单字段', true); return;
+  }
+  if (!repoName) {
+    repoName = 'survey-' + Date.now().toString(36);
+    document.getElementById('settingGithubRepo').value = repoName;
+  }
+
+  showToast('正在发布...');
+  try {
+    const { owner, repo } = await ghEnsureRepo(token, repoName);
+    // Save settings
+    currentSettings.githubToken = token;
+    currentSettings.githubRepo = repoName;
+    currentSettings.githubOwner = owner;
+    await saveAllSettings();
+
+    // Upload schema
+    const schemaPayload = {
+      formName: currentSettings.formName || '现场调研采集',
+      description: currentSettings.description || '',
+      accessType: currentSettings.accessType || 'anyone',
+      fields: formSchema.fields
+    };
+    // Check if schema already exists (need sha to update)
+    let existingSha = null;
+    try {
+      const existing = await ghApi(token, 'GET',
+        'https://api.github.com/repos/' + owner + '/' + repo + '/contents/schema.json');
+      existingSha = existing.sha;
+    } catch (e) { /* not found, ok */ }
+    await ghPutFile(token, owner, repo, 'schema.json', schemaPayload,
+      '发布表单: ' + (currentSettings.formName || '现场调研'), existingSha);
+
+    // Generate share link
+    const baseUrl = window.location.href.split('?')[0].split('#')[0];
+    const shareParams = new URLSearchParams({
+      mode: 'fill',
+      token: token,
+      owner: owner,
+      repo: repo
+    });
+    const shareLink = baseUrl + '?' + shareParams.toString();
+
+    // Show share link area
+    document.getElementById('shareLinkArea').style.display = 'block';
+    document.getElementById('shareLinkInput').value = shareLink;
+
+    // Generate QR code
+    const qrUrl = 'https://api.qrserver.com/api/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(shareLink);
+    document.getElementById('qrcodeContainer').innerHTML =
+      '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">扫码填写 ↓</div>' +
+      '<img src="' + qrUrl + '" style="border:4px solid #fff;box-shadow:0 2px 12px rgba(0,0,0,0.15);border-radius:8px;max-width:200px">';
+
+    showToast('发布成功！已生成分享链接和二维码');
+  } catch (e) {
+    showToast('发布失败: ' + e.message, true);
+  }
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  input.select();
+  navigator.clipboard.writeText(input.value).then(() => {
+    showToast('链接已复制！');
+  }).catch(() => {
+    document.execCommand('copy');
+    showToast('链接已复制！');
+  });
+}
+
+// ==================== 从GitHub拉取数据 ====================
+async function fetchFromGithub() {
+  const token = currentSettings.githubToken;
+  const owner = currentSettings.githubOwner;
+  const repo = currentSettings.githubRepo;
+  if (!token || !repo) { showToast('请先发布表单', true); return; }
+
+  const statusEl = document.getElementById('fetchStatus');
+  statusEl.textContent = '正在拉取...';
+  try {
+    const files = await ghApi(token, 'GET',
+      'https://api.github.com/repos/' + owner + '/' + repo + '/contents/responses');
+    const jsonFiles = files.filter(f => f.name.endsWith('.json'));
+    let count = 0;
+    for (const f of jsonFiles) {
+      try {
+        const record = await ghGetFile(token, owner, repo, 'responses/' + f.name);
+        // Check if already exists locally
+        const existing = await getAllRecords();
+        const exists = existing.some(r => r.id === record.id);
+        if (!exists) {
+          await addRecord(record);
+          count++;
+        }
+      } catch (e) {
+        console.warn('跳过文件', f.name, e);
+      }
+    }
+    statusEl.textContent = '拉取完成！新增 ' + count + ' 条记录（共 ' + jsonFiles.length + ' 条提交）';
+    updateRecordCount();
+    renderRecordList();
+    showToast('成功拉取 ' + count + ' 条新记录');
+  } catch (e) {
+    statusEl.textContent = '拉取失败: ' + e.message;
+    showToast('拉取失败: ' + e.message, true);
+  }
+}
+
+// ==================== 填报模式（fill mode） ====================
+let fillMode = false;
+let fillModeConfig = null; // { token, owner, repo }
+
+async function initFillMode(token, owner, repo) {
+  fillMode = true;
+  fillModeConfig = { token, owner, repo };
+  try {
+    // Load schema from GitHub
+    const schema = await ghGetFile(token, owner, repo, 'schema.json');
+    formSchema = { fields: schema.fields };
+    currentSettings.formName = schema.formName || '现场调研采集';
+    currentSettings.description = schema.description || '';
+    currentSettings.accessType = schema.accessType || 'anyone';
+    applySettingsToUI();
+    renderDynamicForm();
+    // Hide admin-only UI elements
+    document.getElementById('btnViewData').style.display = 'none';
+    document.getElementById('btnSettings').style.display = 'none';
+    document.querySelector('.bottom-bar').style.display = 'none';
+    // Hide form-bottom-actions (view my submit, chain mode)
+    const fba = document.getElementById('formBottomActions');
+    if (fba) fba.style.display = 'none';
+    // Show fill-mode bottom bar
+    const fillBar = document.getElementById('fillModeBar');
+    if (fillBar) fillBar.style.display = 'flex';
+    showToast('表单已加载，请填写');
+  } catch (e) {
+    showToast('加载表单失败: ' + e.message, true);
+  }
+}
+
+async function submitToGithub() {
+  if (!fillModeConfig) return;
+  const { token, owner, repo } = fillModeConfig;
+
+  // Validate and collect data (same as saveRecord)
+  if (!formSchema.fields || formSchema.fields.length === 0) {
+    showToast('表单配置异常', true); return;
+  }
+  const data = {};
+  let hasError = false;
+  for (const field of formSchema.fields) {
+    if (hasError) break;
+    const value = collectFieldData(field, '');
+    if (field.required) {
+      if (field.type === 'checkbox') {
+        if (!value || value.length === 0) { showToast('请填写"' + field.label + '"', true); hasError = true; break; }
+      } else if (field.type === 'subform') {
+        if (!value || value.length === 0) { showToast('请至少添加一条"' + field.label + '"', true); hasError = true; break; }
+        for (const rec of value) {
+          for (const sub of (field.children || [])) {
+            if (sub.required) {
+              const subVal = rec[sub.id];
+              if (sub.type === 'photo') {
+                if (!subVal || subVal.length === 0) { showToast('请上传"' + sub.label + '"', true); hasError = true; break; }
+              } else if (!subVal && subVal !== 0) { showToast('请填写"' + sub.label + '"', true); hasError = true; break; }
+            }
+          }
+          if (hasError) break;
+        }
+      } else if (field.type === 'photo') {
+        if (!value || value.length === 0) { showToast('请上传"' + field.label + '"', true); hasError = true; break; }
+      } else if (!value && value !== 0) { showToast('请填写"' + field.label + '"', true); hasError = true; break; }
+    }
+    data[field.id] = value;
+  }
+  if (hasError) return;
+
+  const ts = Date.now();
+  // 清理照片blob数据（不能序列化到JSON，照片单独上传）
+  const cleanData = JSON.parse(JSON.stringify(data, (key, val) => {
+    if (val instanceof Blob || (val && typeof val === 'object' && val.blob)) return undefined;
+    return val;
+  }));
+  // 把照片替换为数量摘要（供Excel导出用）
+  function addPhotoSummary(obj, fields) {
+    for (const f of fields) {
+      if (f.type === 'photo') {
+        const photos = photoStore[f.id] || [];
+        obj[f.id] = photos.map(p => ({ name: p.name, capture_time: p.capture_time || '' }));
+      } else if (f.type === 'subform') {
+        const subPhotos = f.children.filter(c => c.type === 'photo');
+        const subRecords = obj[f.id] || [];
+        subRecords.forEach((rec, ri) => {
+          for (const sp of subPhotos) {
+            const photos = data[f.id]?.[ri]?.[sp.id] || [];
+            rec[sp.id] = photos.map(p => ({ name: p.name, capture_time: p.capture_time || '' }));
+          }
+        });
+      }
+    }
+  }
+  addPhotoSummary(cleanData, formSchema.fields);
+
+  const record = {
+    id: ts,
+    timestamp: new Date().toLocaleString('zh-CN', { hour12: false }),
+    filler_name: (currentSettings.accessType === 'name') ? (document.getElementById('fillerName')?.value.trim() || '') : '',
+    device_id: getDeviceId(),
+    data: cleanData
+  };
+
+  showToast('正在提交...');
+  try {
+    // Upload record JSON
+    const recordPath = 'responses/' + ts + '.json';
+    await ghPutFile(token, owner, repo, recordPath, record, '提交记录 ' + ts);
+
+    // Upload photos (convert blob → base64)
+    const photoFields = formSchema.fields.filter(f => f.type === 'photo');
+    const subformFields = formSchema.fields.filter(f => f.type === 'subform');
+    let photoCount = 0;
+
+    async function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result;
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    async function uploadPhotoToGithub(blob, name, path) {
+      const base64 = await blobToBase64(blob);
+      await ghApi(token, 'PUT',
+        'https://api.github.com/repos/' + owner + '/' + repo + '/contents/' + path,
+        { message: '照片 ' + path, content: base64 });
+    }
+
+    // Top-level photos
+    for (const pf of photoFields) {
+      const photos = photoStore[pf.id] || [];
+      for (let pi = 0; pi < photos.length; pi++) {
+        const p = photos[pi];
+        const ext = (p.name || 'photo.jpg').split('.').pop();
+        const photoPath = 'responses/' + ts + '/' + pf.id + '_' + (pi + 1) + '.' + ext;
+        await uploadPhotoToGithub(p.blob, p.name, photoPath);
+        photoCount++;
+      }
+    }
+
+    // Subform photos
+    for (const sf of subformFields) {
+      const subPhotos = sf.children.filter(c => c.type === 'photo');
+      const subRecords = data[sf.id] || [];
+      for (let ri = 0; ri < subRecords.length; ri++) {
+        for (const spf of subPhotos) {
+          const photos = subRecords[ri][spf.id] || [];
+          for (let pi = 0; pi < photos.length; pi++) {
+            const p = photos[pi];
+            const ext = (p.name || 'photo.jpg').split('.').pop();
+            const photoPath = 'responses/' + ts + '/' + sf.id + '_' + ri + '_' + spf.id + '_' + (pi + 1) + '.' + ext;
+            await uploadPhotoToGithub(p.blob, p.name, photoPath);
+            photoCount++;
+          }
+        }
+      }
+    }
+
+    showToast('提交成功！' + (photoCount > 0 ? '（含' + photoCount + '张照片）' : ''));
+    resetForm();
+  } catch (e) {
+    showToast('提交失败: ' + e.message, true);
+  }
+}
+
+// ==================== 初始化 ====================
+async function init() {
+  if (!window.indexedDB) {
+    showToast('当前浏览器不支持IndexedDB，无法保存数据', true);
+    return;
+  }
+  try {
+    await openDB();
+
+    // 检测是否为填报模式（URL参数 mode=fill）
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('mode') === 'fill') {
+      const token = urlParams.get('token');
+      const owner = urlParams.get('owner');
+      const repo = urlParams.get('repo');
+      if (token && owner && repo) {
+        await initFillMode(token, owner, repo);
+        return;
+      } else {
+        showToast('链接参数不完整', true);
+        return;
+      }
+    }
+
+    await loadAllSettings();
+    applySettingsToUI();
+    renderDynamicForm();
+    updateRecordCount();
+    checkFormAccess();
+  } catch (err) {
+    showToast('数据库初始化失败: ' + err.message, true);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
